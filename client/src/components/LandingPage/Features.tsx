@@ -2,16 +2,16 @@ import React from "react";
 
 const Features: React.FC = () => {
   return (
-    <section className="py-20 px-6 md:px-12 bg-white/50 relative overflow-hidden">
+    <section className="py-20 px-6 md:px-12 bg-bg-main relative overflow-hidden">
       {/* Background Gradient Spot */}
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-100/50 blur-3xl rounded-full -z-10" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-accent-primary blur-3xl rounded-full -z-10" />
 
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 space-y-4">
-          <h2 className="text-3xl md:text-5xl font-medium font-display text-gray-900">
+          <h2 className="text-3xl md:text-5xl font-medium font-display text-text-primary">
             Financial Chaos vs. AI-Assisted Clarity
           </h2>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
             Smart dashboards track income, expenses in insights.
           </p>
         </div>

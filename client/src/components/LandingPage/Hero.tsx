@@ -6,20 +6,20 @@ const Hero: React.FC = () => {
       
       {/* Background Decor */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none -z-10">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl rounded-full mix-blend-multiply filter opacity-70 animate-float" />
+        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl rounded-full mix-blend-multiply filter opacity-70 animate-float" />
         <div className="absolute top-40 right-10 w-96 h-96 bg-green-500/10 rounded-full blur-3xl rounded-full mix-blend-multiply filter opacity-70 animate-float-delayed" />
       </div>
 
       <div className="container grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         {/* Text Content */}
         <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8 z-10">
-          <h1 className="text-5xl md:text-6xl font-medium font-display leading-[1.1] tracking-tight text-gray-900">
+          <h1 className="text-5xl md:text-6xl font-medium font-display leading-[1.1] tracking-tight text-text-primary">
             Take full control of <br />
             your finances with <br />
             <span className="text-gradient-primary">AI-powered insights.</span>
           </h1>
           
-          <p className="text-lg md:text-xl text-gray-600 max-w-lg leading-relaxed">
+          <p className="text-lg md:text-xl text-text-secondary max-w-lg leading-relaxed">
             Smart dashboards track income, expenses, and investments effortlessly.
           </p>
 

@@ -46,7 +46,7 @@
   :root {
     /* Dark Theme Overrides */
     --color-bg-main: #121212;
-    --color-bg-surface: #1e1e1e;
+    --color-bg-surface: #2c2c2c;
 
     --color-text-primary: #ffffff;
     --color-text-secondary: #b0b0b0;
@@ -64,12 +64,12 @@
 .glass-panel {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.8) 0%,
-    rgba(255, 255, 255, 0.4) 100%
+    var(--color-bg-main) 0%,
+    var(--color-bg-surface) 100%
   );
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--color-border);
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
   border-radius: 20px;
 }

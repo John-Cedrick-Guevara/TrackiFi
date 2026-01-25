@@ -43,10 +43,10 @@ const Pricing: React.FC = () => {
     <section className="py-20 px-6 md:px-12 relative overflow-hidden">
       {/* Header */}
       <div className="text-center mb-16 space-y-4 relative z-10">
-        <h2 className="text-3xl md:text-5xl font-medium font-display text-gray-900">
+        <h2 className="text-3xl md:text-5xl font-medium font-display text-text-primary">
           Simple, Transparent Pricing
         </h2>
-        <p className="text-gray-600 text-lg">
+        <p className="text-text-secondary text-lg">
           Select which personalized solution fits best.
         </p>
       </div>
@@ -88,7 +88,7 @@ const Pricing: React.FC = () => {
               >
                 {/* Header */}
                 <div className="w-full flex justify-between items-center">
-                  <h3 className="text-3xl font-normal font-display text-gray-900">
+                  <h3 className="text-3xl font-normal font-display text-text-primary">
                     {plan.name}
                   </h3>
 
@@ -105,10 +105,10 @@ const Pricing: React.FC = () => {
                     {plan.badge}
                   </div>
                 </div>
-                <hr className="w-full border-gray-200" />
+                <hr className="w-full border-text-secondary" />
 
                 {/* Features */}
-                <ul className="space-y-3 text-gray-600 flex-1">
+                <ul className="space-y-3 text-text-secondary flex-1">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2">
                       <div
