@@ -1,13 +1,18 @@
 import React, { useState } from "react";
-import { Button } from "./Button";
 import { Input } from "./Input";
+import { Button } from "./Button";
+import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "@tanstack/react-router";
 
 interface SignInFormProps {
   onSwitchMode: () => void;
 }
 
 export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { signIn } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -15,11 +20,13 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchMode }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    console.log("Sign in with:", formData);
+    try {
+      await signIn(formData.email, formData.password);
+      // redirect logic here
+      navigate({ to: "/dashboard" });
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
