@@ -37,7 +37,7 @@ export const useAuth = () => {
     }
   };
 
-  const signUp = async (formData: SignUp) => {
+  const signUp = async (formData: SignUp, metadata: any) => {
     try {
       // 1. Sign up
       const { data: signUpData, error } = await supabase.auth.signUp({
@@ -52,11 +52,26 @@ export const useAuth = () => {
         const { error: insertError } = await supabase.from("users").insert({
           id: signUpData.user.id,
           email: signUpData.user.email,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          contact_number: formData.contact_number,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          contact_number: formData.contactNumber,
           occupation: formData.occupation,
-          income_source: formData.income_source,
+          income_source: formData.incomeSource,
+        });
+        console.log(insertError);
+        if (insertError) throw insertError;
+      }
+
+      // 3. insert goal into goals table
+      if (signUpData.user) {
+        const { error: insertError } = await supabase.from("goals").insert({
+          user_id: signUpData.user.id,
+          type: formData.goalType,
+          target_amount: formData.targetAmount,
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          status: "active",
+          metadata,
         });
         console.log(insertError);
         if (insertError) throw insertError;

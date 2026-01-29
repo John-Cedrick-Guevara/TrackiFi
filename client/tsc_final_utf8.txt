@@ -1,0 +1,1 @@
+﻿src/features/auth/hooks/useAuth.ts(13,11): error TS6133: 'session' is declared but its value is never read.

@@ -54,7 +54,6 @@ const Pricing: React.FC = () => {
       {/* Pricing Cards */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10 items-center">
         {PLANS.map((plan) => {
-          const isPurple = plan.accent === "purple";
           const isGreen = plan.accent === "green";
 
           const colorClasses = {

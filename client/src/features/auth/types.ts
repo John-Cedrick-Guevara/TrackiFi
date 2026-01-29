@@ -4,11 +4,18 @@ export interface SignIn {
 }
 
 export interface SignUp {
-    email: string;
-    password: string;
-    first_name: string;
-    last_name: string;
-    contact_number: string
-    occupation: string
-    income_source: string
+  // Step 1
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  contactNumber: string;
+  // Step 2
+  occupation: string;
+  incomeSource: string;
+  // Step 3
+  goalType: string;
+  targetAmount: string;
+  startDate: string;
+  endDate: string;
 }
