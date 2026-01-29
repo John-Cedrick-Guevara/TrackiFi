@@ -1,7 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
   --font-display: "Outfit", sans-serif;
 
   /* Theme Colors Mapping */
@@ -27,22 +28,22 @@
   --color-text-primary: #212529;
   --color-text-secondary: #6c757d;
 
-  --color-accent-primary: #7f5af0;
+  --color-accent-primary: #775aea;
   --color-accent-secondary: #2ecc71; /* Green */
-  --color-accent-tertiary: #2cb67d; /* Light Teal/Blue */
+  --color-accent-tertiary: #25ac83; /* Light Teal/Blue */
 
   --color-progress-bg: #dee2e6;
   --color-border: #dee2e6;
 
   /* Base Styles */
-  font-family: var(--font-sans);
+  font-family: var(--font-poppins);
   background-color: var(--color-bg-main);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dak) {
   :root {
     /* Dark Theme Overrides */
     --color-bg-main: #121212;
@@ -90,8 +91,6 @@
   .container {
     @apply w-full max-w-7xl min-h-screen pt-32 pb-20 px-6 md:px-12 mx-auto;
   }
-
-  
 }
 
 /* Custom Animations */

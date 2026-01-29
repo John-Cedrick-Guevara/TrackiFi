@@ -1,6 +1,7 @@
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { ProtectedRoute } from "@/features/auth/ProtectedRoute";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { createFileRoute } from "@tanstack/react-router";
+import Dashbord from "@/features/dashboard/Dashbord";
 
 export const Route = createFileRoute("/dashboard")({
   component: RouteComponent,
@@ -10,14 +11,7 @@ function RouteComponent() {
   const { signOut } = useAuth();
   return (
     <ProtectedRoute>
-      <div>Hello "/dashboard"!</div>
-      <button
-        onClick={() => {
-          signOut();
-        }}
-      >
-        Sign Out
-      </button>
+      <Dashbord />
     </ProtectedRoute>
   );
 }

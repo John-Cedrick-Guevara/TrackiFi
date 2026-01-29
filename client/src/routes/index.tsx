@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import '../App.css'
 import Hero from '@/components/LandingPage/Hero'
 import Highlights from '@/components/LandingPage/Highlights'
 import Navbar from '@/components/LandingPage/Navbar'

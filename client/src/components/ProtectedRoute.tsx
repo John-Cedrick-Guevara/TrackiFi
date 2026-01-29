@@ -1,7 +1,7 @@
 // apps/web/src/features/auth/ProtectedRoute.tsx
 import React from "react";
 import { Navigate } from "@tanstack/react-router";
-import { useAuth } from "./hooks/useAuth";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
