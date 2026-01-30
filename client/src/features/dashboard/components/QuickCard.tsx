@@ -1,45 +1,49 @@
-import React from 'react'
-import clsx from 'clsx'
-import { cn } from '@/lib/utils'
+import React from "react";
+import clsx from "clsx";
+import { cn } from "@/lib/utils";
 
 type QuickCardProps = {
-  color?: 'primary' | 'secondary'
-  heading?: string
-  value?: string | number
-  subValue?: string
-  children?: React.ReactNode
-  className?: string
-}
+  color?: "primary" | "secondary";
+  heading?: string;
+  value?: string | number;
+  subValue?: string;
+  children?: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+};
 
 const accentMap = {
   primary: {
-    solid: 'var(--color-accent-primary)',
-    soft: 'white',
+    solid: "var(--color-accent-primary)",
+    soft: "white",
   },
   secondary: {
-    solid: 'var(--color-accent-tertiary)',
-    soft: 'white',
+    solid: "var(--color-accent-tertiary)",
+    soft: "white",
   },
-}
+};
 
 const QuickCard: React.FC<QuickCardProps> = ({
-  color = 'primary',
-  heading = 'Housing',
-  value = '$965.00',
-  subValue = '43%',
+  color = "primary",
+  heading = "Housing",
+  value = "$965.00",
+  subValue = "43%",
   children,
   className,
+  onClick,
 }) => {
-  const accent = accentMap[color]
+  const accent = accentMap[color];
 
   return (
     <div
       className={cn(
-        'relative h-full overflow-hidden rounded-2xl p-4',
-        'bg-bg-surface',
-        'transition-transform duration-300 hover:-translate-y-0.5',
-        className
+        "relative h-full overflow-hidden rounded-2xl p-4",
+        "bg-bg-surface",
+        "transition-transform duration-300 hover:-translate-y-0.5",
+        "transition-transform duration-300 hover:-translate-y-0.5 cursor-pointer",
+        className,
       )}
+      onClick={onClick}
     >
       {/* === BACKGROUND / SCI-FI ELEMENTS === */}
 
@@ -79,24 +83,20 @@ const QuickCard: React.FC<QuickCardProps> = ({
           children
         ) : (
           <div className="space-y-2">
-            <p className="text-sm text-bg-main">
-              {heading}
-            </p>
+            <p className="text-sm text-bg-main">{heading}</p>
 
             <p className="text-xl font-semibold tracking-tight text-bg-main">
               {value}
             </p>
 
-            <span
-              className="bg-white/30 backdrop-blur-2xl text-white inline-flex items-center rounded-full px-2 py-0.5 text-xs font-regular "
-            >
+            <span className="bg-white/30 backdrop-blur-2xl text-white inline-flex items-center rounded-full px-2 py-0.5 text-xs font-regular ">
               {subValue}
             </span>
           </div>
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default QuickCard
+export default QuickCard;

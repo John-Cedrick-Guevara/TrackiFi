@@ -13,8 +13,19 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, Menu, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import TransactionHistory from "./components/TransactionHistory";
+import { QuickEntryDialog } from "./components/QuickEntryDialog";
 
 const Dashbord = () => {
+  const [isQuickEntryOpen, setIsQuickEntryOpen] = React.useState(false);
+  const [quickEntryType, setQuickEntryType] = React.useState<
+    "cash_in" | "cash_out"
+  >("cash_out");
+
+  const openQuickEntry = (type: "cash_in" | "cash_out") => {
+    setQuickEntryType(type);
+    setIsQuickEntryOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-6 px-6 pt-6">
@@ -89,6 +100,7 @@ const Dashbord = () => {
                 <p className="text-white text-base">P300</p>
               </div>
             }
+            onClick={() => openQuickEntry("cash_in")}
           />
 
           <QuickCard
@@ -100,14 +112,32 @@ const Dashbord = () => {
                 <p className="text-white/50 text-sm">Flow In</p>
 
                 <hr className="w-full text-white my-1" />
+
                 <p className="text-white text-base">P300</p>
               </div>
             }
+            onClick={() => openQuickEntry("cash_out")}
           />
         </div>
       </div>
       {/* Transaction History */}
       <TransactionHistory />
+
+      {/* Quick Entry Dialog - Floating Trigger is inside for now */}
+      <QuickEntryDialog
+        open={isQuickEntryOpen}
+        onOpenChange={setIsQuickEntryOpen}
+        defaultType={quickEntryType}
+      />
+
+      {/* Optional: Floating FAB separate from dialog if needed, or rely on cards */}
+      <Button
+        size="icon"
+        className="h-14 w-14 rounded-full bg-accent-primary shadow-lg hover:bg-accent-primary/90 transition-transform hover:scale-105 active:scale-95 fixed bottom-6 right-6 z-50"
+        onClick={() => openQuickEntry("cash_out")}
+      >
+        <Plus className="h-6 w-6 text-white" />
+      </Button>
     </div>
   );
 };
