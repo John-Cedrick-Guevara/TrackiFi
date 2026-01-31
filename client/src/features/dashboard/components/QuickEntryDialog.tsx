@@ -25,6 +25,7 @@ import {
   Rocket,
 } from "lucide-react";
 import { useSupabase } from "@/providers";
+import { useQueryClient } from "@tanstack/react-query";
 
 // --- Mock Data / Types for now ---
 const CATEGORIES = [
@@ -52,6 +53,7 @@ export function QuickEntryDialog({
   defaultType = "cash_out",
 }: QuickEntryDialogProps) {
   const supabase = useSupabase();
+  const queryClient = useQueryClient();
   // Consolidated Form Data
   const [formData, setFormData] = useState({
     amount: "",
@@ -131,6 +133,11 @@ export function QuickEntryDialog({
       );
       const data = await res.json();
       setIsSaving(false);
+
+      // Invalidate queries to refresh dashboard data
+      queryClient.invalidateQueries({ queryKey: ["todayCashFlow"] });
+      queryClient.invalidateQueries({ queryKey: ["recentTransactions"] });
+
       onOpenChange(false);
       console.log(data);
     } catch (error) {
