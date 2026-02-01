@@ -22,7 +22,6 @@ import {
   TrendingDown,
   TrendingUp,
   CheckCircle2,
-  Rocket,
 } from "lucide-react";
 import { useSupabase } from "@/providers";
 import { useQueryClient } from "@tanstack/react-query";

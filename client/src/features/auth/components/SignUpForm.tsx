@@ -3,11 +3,7 @@ import { motion } from "framer-motion";
 
 import { OnboardingForm } from "./OnboardingForm";
 
-interface SignUpFormProps {
-  onSwitchMode: () => void;
-}
-
-export const SignUpForm: React.FC<SignUpFormProps> = () => {
+export const SignUpForm: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 sm:p-6 lg:p-8">
       {/* Background subtle pattern */}
