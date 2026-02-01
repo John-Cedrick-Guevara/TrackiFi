@@ -17,12 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  Loader2,
-  TrendingDown,
-  TrendingUp,
-  CheckCircle2,
-} from "lucide-react";
+import { API_BASE_URL } from "@/lib/config";
+import { Loader2, TrendingDown, TrendingUp, CheckCircle2 } from "lucide-react";
 import { useSupabase } from "@/providers";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -119,17 +115,14 @@ export function QuickEntryDialog({
       } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const res = await fetch(
-        "http://127.0.0.1:8787/api/cashflows/quick-entry",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(formData),
+      const res = await fetch(`${API_BASE_URL}/api/cashflows/quick-entry`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify(formData),
+      });
       const data = await res.json();
       setIsSaving(false);
 

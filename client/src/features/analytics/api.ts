@@ -1,6 +1,7 @@
+import { API_BASE_URL as BASE_URL } from "@/lib/config";
 import type { TimeSeriesData, CategoryData, TimeView } from "./types";
 
-const API_BASE_URL = "http://127.0.0.1:8787/api/cashflows/analytics";
+const API_BASE_URL = `${BASE_URL}/api/cashflows/analytics`;
 
 /**
  * Fetches cash flow time series data
