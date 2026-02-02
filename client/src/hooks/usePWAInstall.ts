@@ -72,7 +72,7 @@ export function usePWAInstall() {
     // We've used the prompt, and can't use it again, throw it away
     setDeferredPrompt(null);
     setIsInstallable(false);
-    
+
     return true;
   };
 
