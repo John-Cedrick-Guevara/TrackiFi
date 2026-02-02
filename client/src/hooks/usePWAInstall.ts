@@ -32,7 +32,9 @@ export function usePWAInstall() {
 
   const install = async () => {
     if (!deferredPrompt) {
-      console.warn("Install button clicked, but deferredPrompt is null. Is the app already installed or browser not supported?");
+      console.warn(
+        "Install button clicked, but deferredPrompt is null. Is the app already installed or browser not supported?",
+      );
       return;
     }
 
