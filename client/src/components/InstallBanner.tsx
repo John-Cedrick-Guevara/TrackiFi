@@ -7,7 +7,7 @@ const InstallBanner: React.FC = () => {
   const { isInstallable, install } = usePWAInstall();
   const [show, setShow] = React.useState(true);
 
-  if (!isInstallable || !show) return null;
+  // if (!isInstallable || !show) return null;
 
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-60 w-[90%] max-w-md bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 flex items-center justify-between gap-4 animate-in fade-in  slide-in-from-top-4 duration-500">
