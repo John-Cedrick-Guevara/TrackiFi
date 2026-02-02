@@ -47,7 +47,10 @@ function App() {
   const handleInstallClick = async () => {
     try {
       setError(null);
-      await install();
+      const result = await install();
+      if (!result) {
+        setError("Install prompt not available yet. Try: 1) Browse the site for 30+ seconds, 2) Refresh the page, or 3) Use Chrome menu > 'Install app'");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -103,6 +106,11 @@ function App() {
         {!isHttps && (
           <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
             ⚠️ PWAs require HTTPS on mobile devices
+          </div>
+        )}
+        {!isInstallable && isHttps && (
+          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-[10px] text-blue-700 leading-tight">
+            <strong>Manual Install:</strong> Chrome Menu (⋮) → "Install app" or "Add to Home screen"
           </div>
         )}
       </div>

@@ -53,7 +53,7 @@ export function usePWAInstall() {
       console.warn(
         "Install button clicked, but deferredPrompt is null. Is the app already installed or browser not supported?",
       );
-      return;
+      return false;
     }
 
     console.log("Triggering PWA install prompt...");
@@ -72,6 +72,8 @@ export function usePWAInstall() {
     // We've used the prompt, and can't use it again, throw it away
     setDeferredPrompt(null);
     setIsInstallable(false);
+    
+    return true;
   };
 
   return { isInstallable, isIOS, isStandalone, install };
