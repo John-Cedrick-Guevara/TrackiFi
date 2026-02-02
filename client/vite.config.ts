@@ -19,50 +19,8 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["TrackiFi-logo.png"],
-      manifest: {
-        name: "TrackiFi",
-        short_name: "TrackiFi",
-        description: "Personal Finance Tracker",
-        theme_color: "#ffffff",
-        icons: [
-          {
-            src: "TrackiFi-logo.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "TrackiFi-logo.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-          {
-            src: "TrackiFi-logo.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any maskable",
-          },
-        ],
-        start_url: "/",
-        display: "standalone",
-        background_color: "#ffffff",
-        orientation: "portrait",
-        shortcuts: [
-          {
-            name: "Add Transaction",
-            short_name: "Add",
-            description: "Quickly add a new transaction",
-            url: "/dashboard?action=new",
-            icons: [{ src: "TrackiFi-logo.png", sizes: "192x192" }],
-          },
-          {
-            name: "View Analytics",
-            short_name: "Analytics",
-            description: "View your spending insights",
-            url: "/analytics",
-            icons: [{ src: "TrackiFi-logo.png", sizes: "192x192" }],
-          },
-        ],
-      },
+      manifestFilename: "manifest.json",
+      manifest: false, // Use the public/manifest.json instead
       devOptions: {
         enabled: true,
         type: "module",

@@ -1,0 +1,59 @@
+{
+  "short_name": "TrackiFi",
+  "name": "TrackiFi Finance Tracker",
+  "description": "Personal Finance Tracker with AI-powered insights",
+  "icons": [
+    {
+      "src": "/TrackiFi-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/TrackiFi-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/TrackiFi-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7F5AF0",
+  "orientation": "portrait",
+  "scope": "/",
+  "shortcuts": [
+    {
+      "name": "Add Transaction",
+      "short_name": "Add",
+      "description": "Quickly add a new transaction",
+      "url": "/dashboard?action=new",
+      "icons": [
+        {
+          "src": "/TrackiFi-logo.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "View Analytics",
+      "short_name": "Analytics",
+      "description": "View your spending insights",
+      "url": "/analytics",
+      "icons": [
+        {
+          "src": "/TrackiFi-logo.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
