@@ -2,8 +2,10 @@
 "use client";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { createContext, useContext } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
@@ -18,8 +20,13 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       refetchOnWindowFocus: false,
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours
     },
   },
+});
+
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
 });
 
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -27,10 +34,13 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   return (
     <SupabaseContext.Provider value={supabase}>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister }}
+      >
         {children}
         <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </SupabaseContext.Provider>
   );
 };

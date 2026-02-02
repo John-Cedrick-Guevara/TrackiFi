@@ -8,6 +8,17 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.use("/*", cors());
 
+app.onError((err, c) => {
+  console.error(`Error: ${err.message}`);
+  return c.json(
+    {
+      error: err.message,
+      stack: c.env.SUPABASE_URL ? undefined : err.stack, // Hide stack in semi-prod if you want, but good for debugging now
+    },
+    500,
+  );
+});
+
 app.get("/", (c) => {
   return c.text("Hello Hono!");
 });

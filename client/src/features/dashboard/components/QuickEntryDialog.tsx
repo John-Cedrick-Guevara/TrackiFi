@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,8 @@ import { cn } from "@/lib/utils";
 import { API_BASE_URL } from "@/lib/config";
 import { Loader2, TrendingDown, TrendingUp, CheckCircle2 } from "lucide-react";
 import { useSupabase } from "@/providers";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import type { CashFlowSummary, Transaction } from "../types";
 
 // --- Mock Data / Types for now ---
 const CATEGORIES = [
@@ -56,7 +57,6 @@ export function QuickEntryDialog({
     category: CATEGORIES[0],
     selectedTags: [] as string[],
   });
-  const [isSaving, setIsSaving] = useState(false);
 
   // Sync internal type when defaultType changes or dialog opens
   useEffect(() => {
@@ -104,16 +104,14 @@ export function QuickEntryDialog({
     return parts.join(".");
   };
 
-  // Auto-focus logic would go here or via autoFocus prop on Input
-
-  const handleSave = async () => {
-    if (!formData.amount) return;
-    setIsSaving(true);
-    try {
+  const { mutate: saveTransaction, isPending: isSaving } = useMutation({
+    mutationFn: async (newTransaction: typeof formData) => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       const token = session?.access_token;
+
+      if (!token) throw new Error("No token");
 
       const res = await fetch(`${API_BASE_URL}/api/cashflows/quick-entry`, {
         method: "POST",
@@ -121,21 +119,85 @@ export function QuickEntryDialog({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(newTransaction),
       });
-      const data = await res.json();
-      setIsSaving(false);
 
-      // Invalidate queries to refresh dashboard data
+      if (!res.ok) throw new Error("Failed to save");
+      return res.json();
+    },
+    onMutate: async (newEntry) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ["todayCashFlow"] });
+      await queryClient.cancelQueries({ queryKey: ["recentTransactions"] });
+
+      // Snapshot the previous value
+      const previousSummary = queryClient.getQueryData<CashFlowSummary>([
+        "todayCashFlow",
+      ]);
+      const previousTransactions = queryClient.getQueryData<Transaction[]>([
+        "recentTransactions",
+      ]);
+
+      // Optimistically update to the new value
+      if (previousSummary) {
+        const amount = parseFloat(newEntry.amount);
+        queryClient.setQueryData<CashFlowSummary>(["todayCashFlow"], {
+          ...previousSummary,
+          inflow:
+            newEntry.type === "cash_in"
+              ? previousSummary.inflow + amount
+              : previousSummary.inflow,
+          outflow:
+            newEntry.type === "cash_out"
+              ? previousSummary.outflow + amount
+              : previousSummary.outflow,
+        });
+      }
+
+      if (previousTransactions) {
+        const optimisticTransaction: Transaction = {
+          uuid: Math.random().toString(36).substring(7),
+          amount: parseFloat(newEntry.amount),
+          type: newEntry.type === "cash_in" ? "in" : "out",
+          metadata: {
+            category_name: newEntry.category,
+            tags: newEntry.selectedTags,
+          },
+          logged_at: new Date().toISOString(),
+        };
+        queryClient.setQueryData<Transaction[]>(
+          ["recentTransactions"],
+          [optimisticTransaction, ...previousTransactions],
+        );
+      }
+
+      return { previousSummary, previousTransactions };
+    },
+    onError: (_err, _newEntry, context) => {
+      // Rollback to the previous value if the mutation fails
+      if (context?.previousSummary) {
+        queryClient.setQueryData(["todayCashFlow"], context.previousSummary);
+      }
+      if (context?.previousTransactions) {
+        queryClient.setQueryData(
+          ["recentTransactions"],
+          context.previousTransactions,
+        );
+      }
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure we have the correct server data
       queryClient.invalidateQueries({ queryKey: ["todayCashFlow"] });
       queryClient.invalidateQueries({ queryKey: ["recentTransactions"] });
-
+    },
+    onSuccess: () => {
       onOpenChange(false);
-      console.log(data);
-    } catch (error) {
-      setIsSaving(false);
-      console.log(error);
-    }
+    },
+  });
+
+  const handleSave = () => {
+    if (!formData.amount) return;
+    saveTransaction(formData);
   };
 
   const toggleTag = (tag: string) => {
@@ -305,7 +367,7 @@ export function QuickEntryDialog({
           </div>
 
           {/* 5. Goal Impact Indicator */}
-          <div className="min-h-[24px] flex items-center justify-center">
+          <div className="min-h-6 flex items-center justify-center">
             {numAmount > 0 && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 text-xs font-medium">
                 {renderImpactMessage()}

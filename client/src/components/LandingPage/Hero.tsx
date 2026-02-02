@@ -1,13 +1,12 @@
-import React from 'react';
+import React from "react";
 
 const Hero: React.FC = () => {
   return (
     <section className="relative overflow-hidden lg:block flex">
-      
       {/* Background Decor */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none -z-10">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl rounded-full mix-blend-multiply filter opacity-70 animate-float" />
-        <div className="absolute top-40 right-10 w-96 h-96 bg-green-500/10 rounded-full blur-3xl rounded-full mix-blend-multiply filter opacity-70 animate-float-delayed" />
+        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl mix-blend-multiply filter opacity-70 animate-float" />
+        <div className="absolute top-40 right-10 w-96 h-96 bg-green-500/10 rounded-full blur-3xl mix-blend-multiply filter opacity-70 animate-float-delayed" />
       </div>
 
       <div className="container grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -18,9 +17,10 @@ const Hero: React.FC = () => {
             your finances with <br />
             <span className="text-gradient-primary">AI-powered insights.</span>
           </h1>
-          
+
           <p className="text-lg md:text-xl text-text-secondary max-w-lg leading-relaxed">
-            Smart dashboards track income, expenses, and investments effortlessly.
+            Smart dashboards track income, expenses, and investments
+            effortlessly.
           </p>
 
           <button className="px-8 py-3.5 rounded-full bg-purple-700 hover:bg-purple-600 text-white text-lg font-semibold shadow-xl shadow-purple-500/30 transition-all transform hover:-translate-y-1 active:scale-95">
@@ -30,13 +30,13 @@ const Hero: React.FC = () => {
 
         {/* Hero Image */}
         <div className="relative z-10 lg:h-auto flex justify-center perspective-1000">
-          <div className="relative animate-float w-full max-w-[700px]">
+          <div className="relative animate-float w-full max-w-175">
             {/* Glow behind image */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/20 to-green-400/20 blur-2xl transform rotate-6" />
-            
-            <img 
-              src="/LandingPage/hero-banner.png" 
-              alt="TrackiFi Dashboard" 
+            <div className="absolute inset-0 bg-linear-to-tr from-purple-500/20 to-green-400/20 blur-2xl transform rotate-6" />
+
+            <img
+              src="/LandingPage/hero-banner.png"
+              alt="TrackiFi Dashboard"
               className="relative w-full h-auto drop-shadow-2xl rounded-2xl transform transition-transform hover:scale-[1.02] duration-500"
             />
 
