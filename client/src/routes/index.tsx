@@ -16,27 +16,32 @@ export const Route = createFileRoute("/")({
 function App() {
   const { isInstallable, isIOS, isStandalone, install } = usePWAInstall();
   const [error, setError] = useState<string | null>(null);
-  const [swStatus, setSwStatus] = useState<string>('checking...');
-  const [manifestStatus, setManifestStatus] = useState<string>('checking...');
+  const [swStatus, setSwStatus] = useState<string>("checking...");
+  const [manifestStatus, setManifestStatus] = useState<string>("checking...");
   const [isHttps, setIsHttps] = useState(false);
 
   useEffect(() => {
     // Check HTTPS
-    setIsHttps(window.location.protocol === 'https:');
+    setIsHttps(window.location.protocol === "https:");
 
     // Check Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration().then(reg => {
-        setSwStatus(reg ? 'registered ✓' : 'not registered ✗');
-      }).catch(() => setSwStatus('error ✗'));
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .getRegistration()
+        .then((reg) => {
+          setSwStatus(reg ? "registered ✓" : "not registered ✗");
+        })
+        .catch(() => setSwStatus("error ✗"));
     } else {
-      setSwStatus('not supported ✗');
+      setSwStatus("not supported ✗");
     }
 
     // Check Manifest
-    fetch('/manifest.json')
-      .then(res => res.ok ? setManifestStatus('found ✓') : setManifestStatus('404 ✗'))
-      .catch(() => setManifestStatus('error ✗'));
+    fetch("/manifest.json")
+      .then((res) =>
+        res.ok ? setManifestStatus("found ✓") : setManifestStatus("404 ✗"),
+      )
+      .catch(() => setManifestStatus("error ✗"));
   });
 
   const handleInstallClick = async () => {
@@ -54,19 +59,32 @@ function App() {
 
       {/* Debug Install Button - Always Visible */}
       <div className="fixed bottom-4 right-4 z-50 bg-white p-4 rounded-lg shadow-2xl border border-gray-200 max-w-sm">
-        <h4 className="font-bold text-sm mb-2 text-purple-600">PWA Debug Info</h4>
+        <h4 className="font-bold text-sm mb-2 text-purple-600">
+          PWA Debug Info
+        </h4>
         <div className="text-xs space-y-1 mb-3 font-mono">
-          <p className={isHttps ? 'text-green-600' : 'text-red-600'}>
-            HTTPS: <strong>{String(isHttps)}</strong> {!isHttps && '⚠️'}
+          <p className={isHttps ? "text-green-600" : "text-red-600"}>
+            HTTPS: <strong>{String(isHttps)}</strong> {!isHttps && "⚠️"}
           </p>
-          <p>Service Worker: <strong>{swStatus}</strong></p>
-          <p>Manifest: <strong>{manifestStatus}</strong></p>
-          <p className={isInstallable ? 'text-green-600' : 'text-orange-600'}>
+          <p>
+            Service Worker: <strong>{swStatus}</strong>
+          </p>
+          <p>
+            Manifest: <strong>{manifestStatus}</strong>
+          </p>
+          <p className={isInstallable ? "text-green-600" : "text-orange-600"}>
             Installable: <strong>{String(isInstallable)}</strong>
           </p>
-          <p>iOS: <strong>{String(isIOS)}</strong></p>
-          <p>Standalone: <strong>{String(isStandalone)}</strong></p>
-          <p className="text-[10px] text-gray-500 truncate" title={navigator.userAgent}>
+          <p>
+            iOS: <strong>{String(isIOS)}</strong>
+          </p>
+          <p>
+            Standalone: <strong>{String(isStandalone)}</strong>
+          </p>
+          <p
+            className="text-[10px] text-gray-500 truncate"
+            title={navigator.userAgent}
+          >
             UA: {navigator.userAgent.substring(0, 35)}...
           </p>
         </div>
@@ -75,7 +93,7 @@ function App() {
           className="w-full bg-purple-600 hover:bg-purple-700 text-white"
           size="sm"
         >
-          {isInstallable ? 'Install App' : 'Force Install Attempt'}
+          {isInstallable ? "Install App" : "Force Install Attempt"}
         </Button>
         {error && (
           <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
