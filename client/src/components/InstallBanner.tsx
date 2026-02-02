@@ -18,10 +18,12 @@ const InstallBanner: React.FC = () => {
             {isIOS ? <Share size={20} /> : <Download size={24} />}
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-gray-900 text-sm">Install TrackiFi</h3>
+            <h3 className="font-bold text-gray-900 text-sm">
+              Install TrackiFi
+            </h3>
             <p className="text-xs text-gray-500 line-clamp-2">
-              {isIOS 
-                ? "Tap Share (⎗) then 'Add to Home Screen'" 
+              {isIOS
+                ? "Tap Share (⎗) then 'Add to Home Screen'"
                 : "Fast access & offline support"}
             </p>
           </div>

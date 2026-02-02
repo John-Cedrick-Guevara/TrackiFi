@@ -18,7 +18,7 @@ export function usePWAInstall() {
 
   useEffect(() => {
     // Check if already installed (running in standalone mode)
-    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    const standalone = window.matchMedia("(display-mode: standalone)").matches;
     setIsStandalone(standalone);
 
     // Detect iOS devices
@@ -26,16 +26,16 @@ export function usePWAInstall() {
     const iOS = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(iOS);
 
-    console.log('PWA Install Hook initialized:', {
+    console.log("PWA Install Hook initialized:", {
       isStandalone: standalone,
       isIOS: iOS,
-      userAgent: userAgent.substring(0, 50)
+      userAgent: userAgent.substring(0, 50),
     });
 
     const handler = (e: Event) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-      console.log('beforeinstallprompt event fired');
+      console.log("beforeinstallprompt event fired");
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsInstallable(true);
