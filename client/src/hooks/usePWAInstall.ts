@@ -31,8 +31,12 @@ export function usePWAInstall() {
   }, []);
 
   const install = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      console.warn("Install button clicked, but deferredPrompt is null. Is the app already installed or browser not supported?");
+      return;
+    }
 
+    console.log("Triggering PWA install prompt...");
     // Show the install prompt
     deferredPrompt.prompt();
 
