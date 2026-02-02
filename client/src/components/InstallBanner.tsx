@@ -4,10 +4,10 @@ import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const InstallBanner: React.FC = () => {
-  const { isInstallable, install } = usePWAInstall();
+  const { install } = usePWAInstall();
   const [show, setShow] = React.useState(true);
 
-  // if (!isInstallable || !show) return null;
+  if (!show) console.log("Install banner dismissed");
 
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-60 w-[90%] max-w-md bg-white border border-gray-100 shadow-2xl rounded-2xl p-4 flex items-center justify-between gap-4 animate-in fade-in  slide-in-from-top-4 duration-500">
