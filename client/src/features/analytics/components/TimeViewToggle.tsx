@@ -14,21 +14,19 @@ const TimeViewToggle: React.FC<TimeViewToggleProps> = ({ value, onChange }) => {
   ];
 
   return (
-    <div className="flex gap-2 bg-bg-surface p-1 rounded-lg">
+    <div className="flex gap-1 bg-bg-main p-1 rounded-md w-max">
       {views.map((view) => (
-        <Button
+        <button
           key={view.value}
           onClick={() => onChange(view.value)}
-          variant={value === view.value ? "default" : "ghost"}
-          size="sm"
-          className={
+          className={`px-3 py-1 text-xs font-medium rounded ${
             value === view.value
-              ? "bg-accent-primary text-white hover:bg-accent-primary/90"
-              : "text-text-secondary hover:text-text-primary"
-          }
+              ? "bg-bg-surface text-accent-primary shadow-sm  text-xs"
+              : "text-text-secondary hover:text-text-primary  text-xs"
+          }`}
         >
           {view.label}
-        </Button>
+        </button>
       ))}
     </div>
   );

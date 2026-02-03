@@ -5,17 +5,19 @@ import { fetchCashFlowTimeSeries, fetchCashFlowByCategory } from "./api";
 import type { TimeView } from "./types";
 import BiaxialBarChart from "./components/BiaxialBarChart";
 import CategoryBarChart from "./components/CategoryBarChart";
+import SavingsBarChart from "./components/SavingsBarChart";
 import TimeViewToggle from "./components/TimeViewToggle";
 import { format, subDays } from "date-fns";
 
 const Analytics = () => {
   const supabase = useSupabase();
   const [timeView, setTimeView] = useState<TimeView>("daily");
+  const [savingsTimeView, setSavingsTimeView] = useState<TimeView>("weekly");
 
-  // Calculate date range (last 30 days) - use useMemo to prevent recalculation
+  // Calculate date range (last 90 days to provide enough data for weekly/monthly views)
   const { startDateStr, endDateStr, startDate, endDate } = useMemo(() => {
     const end = new Date();
-    const start = subDays(end, 30);
+    const start = subDays(end, 90);
 
     // Set to start of day for start date
     start.setHours(0, 0, 0, 0);
@@ -28,8 +30,9 @@ const Analytics = () => {
       startDate: start,
       endDate: end,
     };
-  }, []); // Empty dependency array - only calculate once on mount
-  // Fetch time series data
+  }, []);
+
+  // Fetch time series data for the main Comparison Chart
   const { data: timeSeriesData, isLoading: isTimeSeriesLoading } = useQuery({
     queryKey: ["cashFlowTimeSeries", timeView, startDateStr, endDateStr],
     queryFn: async () => {
@@ -42,16 +45,43 @@ const Analytics = () => {
         throw new Error("No authentication token");
       }
 
-      const data = await fetchCashFlowTimeSeries(
+      return await fetchCashFlowTimeSeries(
         token,
         timeView,
         startDateStr,
         endDateStr,
       );
-      console.log("Time series data received:", data);
-      return data;
     },
   });
+
+  // Fetch time series data for the Savings Chart (independent time view)
+  const { data: savingsTimeSeriesData, isLoading: isSavingsLoading } = useQuery(
+    {
+      queryKey: [
+        "savingsTimeSeries",
+        savingsTimeView,
+        startDateStr,
+        endDateStr,
+      ],
+      queryFn: async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        if (!token) {
+          throw new Error("No authentication token");
+        }
+
+        return await fetchCashFlowTimeSeries(
+          token,
+          savingsTimeView,
+          startDateStr,
+          endDateStr,
+        );
+      },
+    },
+  );
 
   // Fetch category data
   const { data: categoryData, isLoading: isCategoryLoading } = useQuery({
@@ -66,13 +96,7 @@ const Analytics = () => {
         throw new Error("No authentication token");
       }
 
-      const data = await fetchCashFlowByCategory(
-        token,
-        startDateStr,
-        endDateStr,
-      );
-      console.log("Category data received:", data);
-      return data;
+      return await fetchCashFlowByCategory(token, startDateStr, endDateStr);
     },
   });
 
@@ -85,20 +109,76 @@ const Analytics = () => {
             Cash Flow Insights
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            {format(startDate, "MMM dd, yyyy")} -{" "}
+            Last 90 days: {format(startDate, "MMM dd, yyyy")} -{" "}
             {format(endDate, "MMM dd, yyyy")}
           </p>
         </div>
-        <TimeViewToggle value={timeView} onChange={setTimeView} />
+        <div className="flex flex-col items-end gap-2">
+          <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+            Global View
+          </span>
+        </div>
+      </div>
+
+      {/* Savings Overview Chart - Full Width */}
+      <div className="bg-bg-surface rounded-2xl p-6 shadow-sm border border-border">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-xl font-semibold text-text-primary">
+              Savings Overview
+            </h2>
+            <p className="text-sm text-text-secondary">
+              Net savings (Inflow - Outflow) over time
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-text-secondary whitespace-nowrap">
+              View:
+            </span>
+            <div className="flex gap-1 bg-bg-main p-1 rounded-md">
+              <button
+                onClick={() => setSavingsTimeView("weekly")}
+                className={`px-3 py-1 text-xs font-medium rounded ${
+                  savingsTimeView === "weekly"
+                    ? "bg-bg-surface text-accent-primary shadow-sm"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                Weekly
+              </button>
+              <button
+                onClick={() => setSavingsTimeView("monthly")}
+                className={`px-3 py-1 text-xs font-medium rounded ${
+                  savingsTimeView === "monthly"
+                    ? "bg-bg-surface text-accent-primary shadow-sm"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                Monthly
+              </button>
+            </div>
+          </div>
+        </div>
+        <SavingsBarChart
+          data={savingsTimeSeriesData}
+          isLoading={isSavingsLoading}
+          timeView={savingsTimeView}
+        />
       </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Cash Flow Comparison Chart */}
-        <div className="bg-bg-surface rounded-2xl p-6 shadow-sm">
+        <div className="bg-bg-surface rounded-2xl p-6 shadow-sm border border-border">
           <h2 className="text-xl font-semibold text-text-primary mb-4">
-            Cash Flow Comparison
+            Flow Comparison
           </h2>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-text-secondary whitespace-nowrap">
+              View:
+            </span>
+            <TimeViewToggle value={timeView} onChange={setTimeView} />
+          </div>
           <BiaxialBarChart
             data={timeSeriesData}
             isLoading={isTimeSeriesLoading}
@@ -107,7 +187,7 @@ const Analytics = () => {
         </div>
 
         {/* Category Breakdown Chart */}
-        <div className="bg-bg-surface rounded-2xl p-6 shadow-sm">
+        <div className="bg-bg-surface rounded-2xl p-6 shadow-sm border border-border">
           <h2 className="text-xl font-semibold text-text-primary mb-4">
             Spending by Category
           </h2>

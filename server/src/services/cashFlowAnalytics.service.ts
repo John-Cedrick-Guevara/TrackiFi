@@ -214,10 +214,15 @@ function aggregateByTimeView(
     if (timeView === "daily") {
       periodKey = date.toISOString().split("T")[0]; // YYYY-MM-DD
     } else if (timeView === "weekly") {
-      // Get week start (Sunday)
+      // Get week start (Monday to Sunday)
       const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay());
-      periodKey = weekStart.toISOString().split("T")[0];
+      // Use local date components to avoid timezone shifts when generating the key
+      const day = weekStart.getDay();
+      const diff = day === 0 ? 6 : day - 1;
+      weekStart.setDate(weekStart.getDate() - diff);
+      
+      // format as YYYY-MM-DD using local time
+      periodKey = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")}`;
     } else {
       // monthly
       periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;

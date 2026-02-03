@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { TimeSeriesData } from "../types";
-import { format } from "date-fns";
+import { format, addDays, isSameMonth } from "date-fns";
 
 interface BiaxialBarChartProps {
   data: TimeSeriesData[] | undefined;
@@ -22,6 +22,17 @@ const BiaxialBarChart: React.FC<BiaxialBarChartProps> = ({
   isLoading,
   timeView,
 }) => {
+  // Helper to parse date string without timezone shifts
+  const parseDate = (dateStr: string) => {
+    if (!dateStr) return new Date();
+    if (dateStr.length === 10) {
+      // Handle YYYY-MM-DD
+      const [year, month, day] = dateStr.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+    return new Date(dateStr);
+  };
+
   // Theme colors
   const COLORS = {
     inflow: "#2ecc71", // Green for cash in
@@ -73,14 +84,19 @@ const BiaxialBarChart: React.FC<BiaxialBarChartProps> = ({
   const formatPeriodLabel = (period: string, view: string) => {
     try {
       if (view === "daily") {
-        return format(new Date(period), "MMM dd, yyyy");
+        return format(parseDate(period), "MMM dd, yyyy");
       } else if (view === "weekly") {
-        return `Week of ${format(new Date(period), "MMM dd, yyyy")}`;
+        const date = parseDate(period);
+        const endDate = addDays(date, 6);
+        if (isSameMonth(date, endDate)) {
+          return `${format(date, "MMM d")} - ${format(endDate, "d")}`;
+        }
+        return `${format(date, "MMM d")} - ${format(endDate, "MMM d")}`;
       } else {
         // Monthly format: period is "YYYY-MM"
         const [year, month] = period.split("-");
-        const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-        return format(date, "MMMM yyyy");
+        const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        return format(monthDate, "MMMM yyyy");
       }
     } catch (error) {
       return period;
@@ -91,14 +107,19 @@ const BiaxialBarChart: React.FC<BiaxialBarChartProps> = ({
   const formatXAxis = (value: string) => {
     try {
       if (timeView === "daily") {
-        return format(new Date(value), "MMM dd");
+        return format(parseDate(value), "MMM dd");
       } else if (timeView === "weekly") {
-        return format(new Date(value), "MMM dd");
+        const date = parseDate(value);
+        const endDate = addDays(date, 6);
+        if (isSameMonth(date, endDate)) {
+          return `${format(date, "MMM d")} - ${format(endDate, "d")}`;
+        }
+        return `${format(date, "MMM d")} - ${format(endDate, "MMM d")}`;
       } else {
         // Monthly format: value is "YYYY-MM"
         const [year, month] = value.split("-");
-        const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-        return format(date, "MMM yyyy");
+        const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        return format(monthDate, "MMM yyyy");
       }
     } catch (error) {
       return value;
