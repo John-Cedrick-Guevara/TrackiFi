@@ -1,5 +1,4 @@
 import type { TimeView } from "../types";
-import { Button } from "@/components/ui/button";
 
 interface TimeViewToggleProps {
   value: TimeView;
