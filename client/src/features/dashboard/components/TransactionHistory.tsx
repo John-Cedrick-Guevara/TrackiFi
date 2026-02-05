@@ -3,6 +3,50 @@ import { format } from "date-fns";
 import { fetchRecentTransactions } from "../api";
 import { useSupabase } from "@/providers";
 import type { Transaction } from "../types";
+import { cn } from "@/lib/utils";
+import {
+  Utensils,
+  Car,
+  ShoppingBag,
+  Gamepad2,
+  HeartPulse,
+  Zap,
+  Wallet,
+  Briefcase,
+  TrendingUp,
+  Gift,
+  Banknote,
+  HelpCircle,
+} from "lucide-react";
+
+const getCategoryIcon = (category: string) => {
+  switch (category) {
+    case "Food & Dining":
+      return <Utensils className="w-5 h-5" />;
+    case "Transportation":
+      return <Car className="w-5 h-5" />;
+    case "Shopping":
+      return <ShoppingBag className="w-5 h-5" />;
+    case "Entertainment":
+      return <Gamepad2 className="w-5 h-5" />;
+    case "Health":
+      return <HeartPulse className="w-5 h-5" />;
+    case "Utilities":
+      return <Zap className="w-5 h-5" />;
+    case "Allowance":
+      return <Wallet className="w-5 h-5" />;
+    case "Freelance":
+      return <Briefcase className="w-5 h-5" />;
+    case "Investments":
+      return <TrendingUp className="w-5 h-5" />;
+    case "Gifts":
+      return <Gift className="w-5 h-5" />;
+    case "Other Income":
+      return <Banknote className="w-5 h-5" />;
+    default:
+      return <HelpCircle className="w-5 h-5" />;
+  }
+};
 
 const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
   const categoryName = transaction.metadata?.category_name || "Uncategorized";
@@ -16,21 +60,28 @@ const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
     "MMM dd, yyyy - hh:mm a",
   );
 
-  const amountColor =
-    transaction.type === "in" ? "text-green-400" : "text-white";
+  const isInternal = transaction.type === "in";
+  const statusColor = isInternal ? "text-gray-500" : "text-gray-500";
 
   return (
     <div className="flex justify-between items-center">
-      <div className="flex items-center gap-2">
-        <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-xl"></div>
+      <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            "w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-xl border border-white/5",
+            isInternal ? "bg-gray-400/10" : "bg-gray-400/10",
+          )}
+        >
+          <div className={statusColor}>{getCategoryIcon(categoryName)}</div>
+        </div>
         <div>
-          <p className="text-base text-white">{categoryName}</p>
-          <p className="text-xs text-gray-300">{formattedDate}</p>
+          <p className="text-base font-medium text-primary">{categoryName}</p>
+          <p className="text-xs text-text-secondary">{formattedDate}</p>
         </div>
       </div>
       <div>
-        <p className={`text-base font-medium ${amountColor}`}>
-          {transaction.type === "in" ? "+" : "-"}
+        <p className={cn("text-base font-semibold", statusColor)}>
+          {isInternal ? "+" : "-"}
           {formattedAmount}
         </p>
       </div>
@@ -46,14 +97,14 @@ const TransactionHistorySkeleton = () => {
           key={index}
           className="flex justify-between items-center animate-pulse"
         >
-          <div className="flex items-center gap-2">
-            <div className="w-12 h-12 rounded-full bg-white/10"></div>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-white/5 border border-white/5"></div>
             <div>
-              <div className="h-4 w-24 bg-white/10 rounded mb-1"></div>
+              <div className="h-5 w-24 bg-white/10 rounded mb-1"></div>
               <div className="h-3 w-32 bg-white/10 rounded"></div>
             </div>
           </div>
-          <div className="h-4 w-16 bg-white/10 rounded"></div>
+          <div className="h-5 w-16 bg-white/10 rounded"></div>
         </div>
       ))}
     </>
@@ -80,12 +131,12 @@ const TransactionHistory = () => {
   });
 
   return (
-    <section className="bg-accent-primary rounded-t-[50px] bottom-0 left-0 right-0 p-6 pb-0 h-full">
-      <div className="flex justify-between items-center text-white">
+    <section className="bg-bg-main p-6 pb-0 h-full">
+      <div className="flex justify-between items-center text-primary">
         <p className="text-2xl font-semibold tracking-tight">
           Transaction History
         </p>
-        <p className="text-sm text-text-white">View All</p>
+        <p className="text-sm text-text-primary">View All</p>
       </div>
 
       <div className="space-y-4 mt-5 max-h-[50vh] overflow-y-scroll">

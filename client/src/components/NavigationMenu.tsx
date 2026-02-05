@@ -5,7 +5,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Home, BarChart3, Settings, X } from "lucide-react";
+import { Home, BarChart3, TrendingUp, Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface NavigationMenuProps {
@@ -22,6 +22,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
   const navItems = [
     { label: "Dashboard", path: "/dashboard", icon: Home },
     { label: "Analytics", path: "/analytics", icon: BarChart3 },
+    { label: "Investments", path: "/investments", icon: TrendingUp },
     { label: "Settings", path: "/settings", icon: Settings },
   ];
 
@@ -29,7 +30,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-[280px] sm:w-[320px]">
+      <SheetContent side="left" className="w-70 sm:w-80 bg-bg-surface">
         <SheetHeader className="border-b pb-4">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-2xl font-bold text-text-primary">

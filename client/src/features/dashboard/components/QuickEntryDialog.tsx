@@ -24,13 +24,21 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import type { CashFlowSummary, Transaction } from "../types";
 
 // --- Mock Data / Types for now ---
-const CATEGORIES = [
+const FLOW_OUT_CATEGORIES = [
   "Food & Dining",
   "Transportation",
   "Shopping",
   "Entertainment",
   "Health",
   "Utilities",
+];
+
+const FLOW_IN_CATEGORIES = [
+  "Allowance",
+  "Freelance",
+  "Investments",
+  "Gifts",
+  "Other Income",
 ];
 
 const TAGS = ["Need", "Want", "Social", "Treat", "Emergency"];
@@ -54,7 +62,7 @@ export function QuickEntryDialog({
   const [formData, setFormData] = useState({
     amount: "",
     type: defaultType,
-    category: CATEGORIES[0],
+    category: defaultType === "cash_out" ? FLOW_OUT_CATEGORIES[0] : FLOW_IN_CATEGORIES[0],
     selectedTags: [] as string[],
   });
 
@@ -65,7 +73,7 @@ export function QuickEntryDialog({
         ...prev,
         amount: "",
         type: defaultType,
-        selectedTags: [],
+        category: defaultType === "cash_out" ? FLOW_OUT_CATEGORIES[0] : FLOW_IN_CATEGORIES[0],
       }));
     }
   }, [open, defaultType]);
@@ -323,7 +331,7 @@ export function QuickEntryDialog({
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((cat) => (
+                  {(formData.type === "cash_out" ? FLOW_OUT_CATEGORIES : FLOW_IN_CATEGORIES).map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>

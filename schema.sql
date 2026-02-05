@@ -105,7 +105,42 @@ create index idx_insights_user on public.insights(user_uuid);
 create index idx_insights_ack on public.insights(user_uuid, acknowledged);
 
 -- ============================================
--- 7. ENABLE RLS AND CREATE POLICIES
+-- 7. INVESTMENTS TABLE
+-- ============================================
+create table public.investments (
+    uuid uuid primary key default gen_random_uuid(),
+    user_uuid uuid references public.users(uuid) on delete cascade,
+    name text not null,
+    type text check(type in ('stock','crypto','fund','savings','other')) not null,
+    principal numeric(12,2) not null,
+    current_value numeric(12,2) not null,
+    start_date date not null,
+    status text check(status in ('active','closed')) default 'active',
+    metadata jsonb,
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
+);
+
+create index idx_investments_user on public.investments(user_uuid);
+create index idx_investments_status on public.investments(user_uuid, status);
+
+-- ============================================
+-- 8. INVESTMENT_VALUE_HISTORY TABLE
+-- ============================================
+create table public.investment_value_history (
+    uuid uuid primary key default gen_random_uuid(),
+    investment_uuid uuid references public.investments(uuid) on delete cascade,
+    value numeric(12,2) not null,
+    recorded_at timestamptz not null default now(),
+    notes text,
+    created_at timestamptz default now()
+);
+
+create index idx_inv_history_investment_uuid on public.investment_value_history(investment_uuid);
+create index idx_inv_history_recorded_at on public.investment_value_history(recorded_at);
+
+-- ============================================
+-- 9. ENABLE RLS AND CREATE POLICIES
 -- ============================================
 
 -- Enable RLS for each table
@@ -115,6 +150,8 @@ alter table public.goals enable row level security;
 alter table public.cash_flow enable row level security;
 alter table public.reflections enable row level security;
 alter table public.insights enable row level security;
+alter table public.investments enable row level security;
+alter table public.investment_value_history enable row level security;
 
 -- Users can select/update/delete their own data
 create policy "Users can access their own data" 
@@ -147,6 +184,22 @@ create policy "Users can access their own insights"
     for all
     using (auth.uid() = user_uuid);
 
+create policy "Users can access their own investments" 
+    on public.investments
+    for all
+    using (auth.uid() = user_uuid);
+
+create policy "Users can access their own investment history" 
+    on public.investment_value_history
+    for all
+    using (
+        exists (
+            select 1 from public.investments 
+            where uuid = investment_value_history.investment_uuid 
+            and user_uuid = auth.uid()
+        )
+    );
+
 -- Admin can bypass RLS (assuming role is 'admin')
 -- Supabase uses a custom claim in JWT, e.g., `role = 'admin'`
 create policy "Admins can access all data" 
@@ -176,5 +229,15 @@ create policy "Admins can access all reflections"
 
 create policy "Admins can access all insights" 
     on public.insights
+    for all
+    using (auth.role() = 'admin');
+
+create policy "Admins can access all investments" 
+    on public.investments
+    for all
+    using (auth.role() = 'admin');
+
+create policy "Admins can access all investment history" 
+    on public.investment_value_history
     for all
     using (auth.role() = 'admin');

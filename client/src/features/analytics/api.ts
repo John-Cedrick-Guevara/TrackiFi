@@ -39,10 +39,12 @@ export const fetchCashFlowByCategory = async (
   token: string,
   startDate: string,
   endDate: string,
+  type: "in" | "out" = "out",
 ): Promise<CategoryData[]> => {
   const url = new URL(`${API_BASE_URL}/by-category`);
   url.searchParams.append("startDate", startDate);
   url.searchParams.append("endDate", endDate);
+  url.searchParams.append("type", type);
 
   const response = await fetch(url.toString(), {
     method: "GET",

@@ -22,15 +22,15 @@
 
 :root {
   /* Light Theme Defaults */
-  --color-bg-main: #f8f9fa;
+  --color-bg-main: #f7f7f9;
   --color-bg-surface: #ffffff;
 
   --color-text-primary: #212529;
   --color-text-secondary: #6c757d;
 
-  --color-accent-primary: #775aea;
+  --color-accent-primary: #5f40da;
   --color-accent-secondary: #2ecc71; /* Green */
-  --color-accent-tertiary: #25ac83; /* Light Teal/Blue */
+  --color-accent-tertiary: #27ae83; /* Light Teal/Blue */
 
   --color-progress-bg: #dee2e6;
   --color-border: #dee2e6;

@@ -5,6 +5,7 @@ import { fetchCashFlowTimeSeries, fetchCashFlowByCategory } from "./api";
 import type { TimeView } from "./types";
 import BiaxialBarChart from "./components/BiaxialBarChart";
 import CategoryBarChart from "./components/CategoryBarChart";
+import InflowCategoryBarChart from "./components/InflowCategoryBarChart";
 import SavingsBarChart from "./components/SavingsBarChart";
 import TimeViewToggle from "./components/TimeViewToggle";
 import { format, subDays } from "date-fns";
@@ -83,22 +84,51 @@ const Analytics = () => {
     },
   );
 
-  // Fetch category data
-  const { data: categoryData, isLoading: isCategoryLoading } = useQuery({
-    queryKey: ["cashFlowByCategory", startDateStr, endDateStr],
-    queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
+  // Fetch outflow category data
+  const { data: outflowCategoryData, isLoading: isOutflowCategoryLoading } =
+    useQuery({
+      queryKey: ["cashFlowByCategory", "out", startDateStr, endDateStr],
+      queryFn: async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const token = session?.access_token;
 
-      if (!token) {
-        throw new Error("No authentication token");
-      }
+        if (!token) {
+          throw new Error("No authentication token");
+        }
 
-      return await fetchCashFlowByCategory(token, startDateStr, endDateStr);
-    },
-  });
+        return await fetchCashFlowByCategory(
+          token,
+          startDateStr,
+          endDateStr,
+          "out",
+        );
+      },
+    });
+
+  // Fetch inflow category data
+  const { data: inflowCategoryData, isLoading: isInflowCategoryLoading } =
+    useQuery({
+      queryKey: ["cashFlowByCategory", "in", startDateStr, endDateStr],
+      queryFn: async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        if (!token) {
+          throw new Error("No authentication token");
+        }
+
+        return await fetchCashFlowByCategory(
+          token,
+          startDateStr,
+          endDateStr,
+          "in",
+        );
+      },
+    });
 
   return (
     <div className="min-h-screen bg-bg-main p-6 space-y-6">
@@ -120,78 +150,92 @@ const Analytics = () => {
         </div>
       </div>
 
-      {/* Savings Overview Chart - Full Width */}
+      {/* Cash Flow Comparison Chart */}
       <div className="bg-bg-surface rounded-2xl p-6 shadow-sm border border-border">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-xl font-semibold text-text-primary">
-              Savings Overview
-            </h2>
-            <p className="text-sm text-text-secondary">
-              Net savings (Inflow - Outflow) over time
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-text-secondary whitespace-nowrap">
-              View:
-            </span>
-            <div className="flex gap-1 bg-bg-main p-1 rounded-md">
-              <button
-                onClick={() => setSavingsTimeView("weekly")}
-                className={`px-3 py-1 text-xs font-medium rounded ${
-                  savingsTimeView === "weekly"
-                    ? "bg-bg-surface text-accent-primary shadow-sm"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                Weekly
-              </button>
-              <button
-                onClick={() => setSavingsTimeView("monthly")}
-                className={`px-3 py-1 text-xs font-medium rounded ${
-                  savingsTimeView === "monthly"
-                    ? "bg-bg-surface text-accent-primary shadow-sm"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                Monthly
-              </button>
-            </div>
-          </div>
+        <h2 className="text-xl font-semibold text-text-primary mb-4">
+          Flow Comparison
+        </h2>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium text-text-secondary whitespace-nowrap">
+            View:
+          </span>
+          <TimeViewToggle value={timeView} onChange={setTimeView} />
         </div>
-        <SavingsBarChart
-          data={savingsTimeSeriesData}
-          isLoading={isSavingsLoading}
-          timeView={savingsTimeView}
+        <BiaxialBarChart
+          data={timeSeriesData}
+          isLoading={isTimeSeriesLoading}
+          timeView={timeView}
         />
       </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Cash Flow Comparison Chart */}
+        {/* Savings Overview Chart - Full Width */}
         <div className="bg-bg-surface rounded-2xl p-6 shadow-sm border border-border">
-          <h2 className="text-xl font-semibold text-text-primary mb-4">
-            Flow Comparison
-          </h2>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-text-secondary whitespace-nowrap">
-              View:
-            </span>
-            <TimeViewToggle value={timeView} onChange={setTimeView} />
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-text-primary">
+                Savings Overview
+              </h2>
+              <p className="text-sm text-text-secondary">
+                Net savings (Inflow - Outflow) over time
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-text-secondary whitespace-nowrap">
+                View:
+              </span>
+              <div className="flex gap-1 bg-bg-main p-1 rounded-md">
+                <button
+                  onClick={() => setSavingsTimeView("weekly")}
+                  className={`px-3 py-1 text-xs font-medium rounded ${
+                    savingsTimeView === "weekly"
+                      ? "bg-bg-surface text-accent-primary shadow-sm"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  Weekly
+                </button>
+                <button
+                  onClick={() => setSavingsTimeView("monthly")}
+                  className={`px-3 py-1 text-xs font-medium rounded ${
+                    savingsTimeView === "monthly"
+                      ? "bg-bg-surface text-accent-primary shadow-sm"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  Monthly
+                </button>
+              </div>
+            </div>
           </div>
-          <BiaxialBarChart
-            data={timeSeriesData}
-            isLoading={isTimeSeriesLoading}
-            timeView={timeView}
+          <SavingsBarChart
+            data={savingsTimeSeriesData}
+            isLoading={isSavingsLoading}
+            timeView={savingsTimeView}
           />
         </div>
 
-        {/* Category Breakdown Chart */}
+        {/* Category Breakdown Chart - Spending */}
         <div className="bg-bg-surface rounded-2xl p-6 shadow-sm border border-border">
           <h2 className="text-xl font-semibold text-text-primary mb-4">
             Spending by Category
           </h2>
-          <CategoryBarChart data={categoryData} isLoading={isCategoryLoading} />
+          <CategoryBarChart
+            data={outflowCategoryData}
+            isLoading={isOutflowCategoryLoading}
+          />
+        </div>
+
+        {/* Category Breakdown Chart - Income */}
+        <div className="bg-bg-surface rounded-2xl p-6 shadow-sm border border-border">
+          <h2 className="text-xl font-semibold text-text-primary mb-4">
+            Income by Category
+          </h2>
+          <InflowCategoryBarChart
+            data={inflowCategoryData}
+            isLoading={isInflowCategoryLoading}
+          />
         </div>
       </div>
     </div>

@@ -116,7 +116,7 @@ export const getCashFlowTimeSeries = async (
   // Fetch transactions in date range
   const { data: transactions, error } = await supabase
     .from("cash_flow")
-    .select("amount, type, logged_at")
+    .select("amount, type, logged_at, metadata")
     .eq("user_uuid", user.id)
     .eq("status", "completed")
     .gte("logged_at", startDate)
@@ -128,20 +128,27 @@ export const getCashFlowTimeSeries = async (
     return { error };
   }
 
+  // Filter out investment transactions from spending/income time series
+  const filteredTransactions = (transactions || []).filter((t) => {
+    const metadata = t.metadata as any;
+    return !metadata?.investment_uuid;
+  });
+
   // Aggregate data based on time view
-  const aggregated = aggregateByTimeView(transactions || [], timeView);
+  const aggregated = aggregateByTimeView(filteredTransactions, timeView);
 
   return { data: aggregated };
 };
 
 /**
- * Fetches cash flow breakdown by category (outflows only)
+ * Fetches cash flow breakdown by category
  */
 export const getCashFlowByCategory = async (
   env: Env,
   startDate: string,
   endDate: string,
   accessToken?: string,
+  type: "in" | "out" = "out",
 ) => {
   const supabase = getSupabase(env, accessToken);
 
@@ -154,12 +161,12 @@ export const getCashFlowByCategory = async (
     return { error: new Error("Unauthorized: Invalid token") };
   }
 
-  // Fetch outflow transactions in date range
+  // Fetch transactions in date range
   const { data: transactions, error } = await supabase
     .from("cash_flow")
     .select("amount, metadata")
     .eq("user_uuid", user.id)
-    .eq("type", "out")
+    .eq("type", type)
     .eq("status", "completed")
     .gte("logged_at", startDate)
     .lte("logged_at", endDate);
@@ -174,9 +181,12 @@ export const getCashFlowByCategory = async (
   let total = 0;
 
   (transactions || []).forEach((transaction) => {
+    const metadata = transaction.metadata as any;
+    // Skip investment transactions in category breakdown
+    if (metadata?.investment_uuid) return;
+
     const amount = parseFloat(transaction.amount.toString());
-    const category =
-      (transaction.metadata as any)?.category_name || "Uncategorized";
+    const category = metadata?.category_name || "Uncategorized";
 
     categoryMap.set(category, (categoryMap.get(category) || 0) + amount);
     total += amount;
@@ -220,7 +230,7 @@ function aggregateByTimeView(
       const day = weekStart.getDay();
       const diff = day === 0 ? 6 : day - 1;
       weekStart.setDate(weekStart.getDate() - diff);
-      
+
       // format as YYYY-MM-DD using local time
       periodKey = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")}`;
     } else {

@@ -1,8 +1,10 @@
 {
-	"dependencies": {
-		"hono": "^4.11.7"
-	},
-	"devDependencies": {
-		"wrangler": "^4.61.1"
-	}
+  "dependencies": {
+    "hono": "^4.11.5",
+    "@hono/zod-validator": "^0.7.6",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "wrangler": "^4.61.1"
+  }
 }

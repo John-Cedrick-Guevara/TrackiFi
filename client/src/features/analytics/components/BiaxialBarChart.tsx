@@ -128,7 +128,7 @@ const BiaxialBarChart: React.FC<BiaxialBarChartProps> = ({
 
   if (isLoading) {
     return (
-      <div className="w-full h-[400px] bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">
+      <div className="w-full h-100 bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">
         <p className="text-gray-400">Loading chart...</p>
       </div>
     );
@@ -136,7 +136,7 @@ const BiaxialBarChart: React.FC<BiaxialBarChartProps> = ({
 
   if (!data || data.length === 0) {
     return (
-      <div className="w-full h-[400px] bg-gray-50 rounded-lg flex items-center justify-center">
+      <div className="w-full h-100 bg-gray-50 rounded-lg flex items-center justify-center">
         <p className="text-gray-400">No data available</p>
       </div>
     );
@@ -167,7 +167,7 @@ const BiaxialBarChart: React.FC<BiaxialBarChartProps> = ({
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend
-          wrapperStyle={{ paddingTop: "10px",  }}
+          wrapperStyle={{ paddingTop: "10px" }}
           iconType="rect"
           formatter={(value) => (
             <span style={{ color: "#212529", fontSize: "14px" }}>

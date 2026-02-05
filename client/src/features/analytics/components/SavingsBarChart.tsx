@@ -149,7 +149,7 @@ const SavingsBarChart: React.FC<SavingsBarChartProps> = ({
 
   if (isLoading) {
     return (
-      <div className="h-[300px] flex items-center justify-center">
+      <div className="h-75 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-primary"></div>
       </div>
     );
@@ -157,14 +157,14 @@ const SavingsBarChart: React.FC<SavingsBarChartProps> = ({
 
   if (!chartData || chartData.length === 0) {
     return (
-      <div className="h-[300px] flex items-center justify-center text-text-secondary">
+      <div className="h-75 flex items-center justify-center text-text-secondary">
         No data available for this period.
       </div>
     );
   }
 
   return (
-    <div className="h-[300px] w-full">
+    <div className="h-75 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={chartData}

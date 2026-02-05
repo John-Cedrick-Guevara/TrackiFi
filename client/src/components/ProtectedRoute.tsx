@@ -2,6 +2,7 @@
 import React from "react";
 import { Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import Header from "@/features/dashboard/components/Header";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,7 +11,7 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
 
-  console.log(user)
+  console.log(user);
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -19,5 +20,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <Header />
+
+      {children}
+    </>
+  );
 };

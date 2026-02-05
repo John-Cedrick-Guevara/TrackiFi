@@ -95,7 +95,7 @@ cashFlowAnalytics.get("/timeseries", async (c) => {
 
 /**
  * GET /by-category - Returns cash flow breakdown by category
- * Query params: startDate, endDate
+ * Query params: startDate, endDate, type (in|out)
  */
 cashFlowAnalytics.get("/by-category", async (c) => {
   const token = c.req.header("Authorization")?.split(" ")[1];
@@ -106,6 +106,7 @@ cashFlowAnalytics.get("/by-category", async (c) => {
 
   const startDate = c.req.query("startDate");
   const endDate = c.req.query("endDate");
+  const type = (c.req.query("type") as "in" | "out") || "out";
 
   // Validate required parameters
   if (!startDate || !endDate) {
@@ -115,11 +116,17 @@ cashFlowAnalytics.get("/by-category", async (c) => {
     );
   }
 
+  // Validate type
+  if (type && !["in", "out"].includes(type)) {
+    return c.json({ error: "Invalid type. Must be 'in' or 'out'" }, 400);
+  }
+
   const { data, error } = await getCashFlowByCategory(
     c.env,
     startDate,
     endDate,
     token,
+    type,
   );
 
   if (error) {
