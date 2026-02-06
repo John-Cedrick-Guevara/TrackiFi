@@ -4,7 +4,9 @@ import { zValidator } from "@hono/zod-validator";
 import { quickEntryValidator } from "../validators/cashFlow.validator";
 import { Env } from "../types/env";
 
-const cashflow = new Hono<{ Bindings: Env }>();
+const cashflow = new Hono<{ Bindings: Env }>({
+  strict: false,
+});
 
 cashflow.post(
   "/quick-entry",

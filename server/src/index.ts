@@ -5,7 +5,11 @@ import cashFlowAnalytics from "./routes/cashFlowAnalytics.route";
 import investmentRoute from "./routes/investment.route";
 import { Env } from "./types/env";
 
-const app = new Hono<{ Bindings: Env }>();
+// Configure Hono with strict:false to handle both /path and /path/ variants
+// This is critical for Cloudflare Workers production deployment
+const app = new Hono<{ Bindings: Env }>({
+  strict: false,  // Handle trailing slash variations
+});
 
 app.use("/*", cors({
   origin: '*',
@@ -50,8 +54,15 @@ app.get("/api/health", (c) => {
   });
 });
 
+// Mount routes - order matters for nested routes
+app.route("/api/cashflows/analytics", cashFlowAnalytics);  // More specific first
 app.route("/api/cashflows", cashflow);
-app.route("/api/cashflows/analytics", cashFlowAnalytics);
 app.route("/api/investments", investmentRoute);
+
+// Catch-all 404 handler for debugging
+app.notFound((c) => {
+  console.error(`[404] Route not found: ${c.req.method} ${c.req.url}`);
+  return c.json({ error: "Not Found", path: c.req.url, method: c.req.method }, 404);
+});
 
 export default app;

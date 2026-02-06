@@ -7,7 +7,9 @@ import {
 } from "../services/cashFlowAnalytics.service";
 import { Env } from "../types/env";
 
-const cashFlowAnalytics = new Hono<{ Bindings: Env }>();
+const cashFlowAnalytics = new Hono<{ Bindings: Env }>({
+  strict: false,
+});
 
 /**
  * GET /today - Returns today's cash flow summary

@@ -8,13 +8,17 @@ import {
   cashOutValidator,
 } from "../validators/investment.validator";
 
-const investmentRoute = new Hono<{ Bindings: Env }>();
+// Configure sub-router with strict:false to match parent behavior
+const investmentRoute = new Hono<{ Bindings: Env }>({
+  strict: false,
+});
 
 // Create investment
 investmentRoute.post(
   "/",
   zValidator("json", createInvestmentValidator),
   async (c) => {
+    console.log(`[Route] POST /api/investments - Creating investment`);
     const body = await c.req.json();
     const token = c.req.header("Authorization")?.split(" ")[1];
     const { data, error } = await investmentService.createInvestment(
@@ -27,9 +31,9 @@ investmentRoute.post(
   },
 );
 
-// Get all investments
+// Get all investments - handle both /api/investments and /api/investments/
 investmentRoute.get("/", async (c) => {
-  console.log(`[Route] GET /api/investments - ${c.req.method}`);
+  console.log(`[Route] GET ${c.req.url} - Fetching all investments`);
   const token = c.req.header("Authorization")?.split(" ")[1];
 
   if (!token) {
