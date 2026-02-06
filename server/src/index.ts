@@ -31,6 +31,25 @@ app.get("/", (c) => {
   return c.text("Hello Hono!");
 });
 
+// Health check and configuration diagnostic endpoint
+app.get("/api/health", (c) => {
+  const hasSupabaseUrl = !!c.env?.SUPABASE_URL;
+  const hasAnonKey = !!c.env?.SUPABASE_ANON_KEY;
+  const hasServiceKey = !!c.env?.SUPABASE_SERVICE_ROLE_KEY;
+  
+  return c.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    config: {
+      supabaseUrl: hasSupabaseUrl ? c.env.SUPABASE_URL : "MISSING",
+      hasAnonKey,
+      hasServiceKey,
+      usingKey: hasAnonKey ? "ANON_KEY" : hasServiceKey ? "SERVICE_ROLE_KEY" : "NONE",
+      warning: hasServiceKey && hasAnonKey ? "Both keys present - will use ANON_KEY" : null,
+    },
+  });
+});
+
 app.route("/api/cashflows", cashflow);
 app.route("/api/cashflows/analytics", cashFlowAnalytics);
 app.route("/api/investments", investmentRoute);

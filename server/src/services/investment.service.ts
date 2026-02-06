@@ -77,6 +77,7 @@ export const createInvestment = async (
 };
 
 export const getInvestments = async (env: Env, accessToken?: string) => {
+  console.log("[Service] getInvestments called with token:", !!accessToken);
   const supabase = getSupabase(env, accessToken);
 
   // Explicitly verify user to ensure token is valid and get user.id for explicit filtering
@@ -85,9 +86,17 @@ export const getInvestments = async (env: Env, accessToken?: string) => {
     error: authError,
   } = await supabase.auth.getUser();
 
-  if (authError || !user) {
+  if (authError) {
+    console.error("[Service] Auth error:", authError.message);
+    return { error: `Unauthorized: ${authError.message}` };
+  }
+  
+  if (!user) {
+    console.error("[Service] No user found from token");
     return { error: "Unauthorized: Invalid token" };
   }
+
+  console.log("[Service] Authenticated user:", user.id);
 
   const { data, error } = await supabase
     .from("investments")
@@ -95,8 +104,17 @@ export const getInvestments = async (env: Env, accessToken?: string) => {
     .eq("user_uuid", user.id) // Explicitly filter by user_uuid even with RLS enabled
     .order("created_at", { ascending: false });
 
-  if (error) return { error: error.message };
-  if (!data) return { data: [] };
+  if (error) {
+    console.error("[Service] Query error:", error.message);
+    return { error: error.message };
+  }
+  
+  if (!data) {
+    console.log("[Service] No data returned, returning empty array");
+    return { data: [] };
+  }
+
+  console.log(`[Service] Found ${data.length} investments`);
 
   const investmentsWithGains = data.map((inv: Investment) => {
     const absolute_gain = (inv.current_value || 0) - (inv.principal || 0);
