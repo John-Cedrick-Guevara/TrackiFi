@@ -6,7 +6,6 @@ import {
   createInvestmentValidator,
   updateValueValidator,
   cashOutValidator,
-  updateInvestmentValidator,
 } from "../validators/investment.validator";
 
 const investmentRoute = new Hono<{ Bindings: Env }>();
