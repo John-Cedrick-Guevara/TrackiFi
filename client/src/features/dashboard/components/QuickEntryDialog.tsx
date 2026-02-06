@@ -62,7 +62,10 @@ export function QuickEntryDialog({
   const [formData, setFormData] = useState({
     amount: "",
     type: defaultType,
-    category: defaultType === "cash_out" ? FLOW_OUT_CATEGORIES[0] : FLOW_IN_CATEGORIES[0],
+    category:
+      defaultType === "cash_out"
+        ? FLOW_OUT_CATEGORIES[0]
+        : FLOW_IN_CATEGORIES[0],
     selectedTags: [] as string[],
   });
 
@@ -73,7 +76,10 @@ export function QuickEntryDialog({
         ...prev,
         amount: "",
         type: defaultType,
-        category: defaultType === "cash_out" ? FLOW_OUT_CATEGORIES[0] : FLOW_IN_CATEGORIES[0],
+        category:
+          defaultType === "cash_out"
+            ? FLOW_OUT_CATEGORIES[0]
+            : FLOW_IN_CATEGORIES[0],
       }));
     }
   }, [open, defaultType]);
@@ -289,7 +295,11 @@ export function QuickEntryDialog({
           <div className="flex bg-bg-main p-1 rounded-lg">
             <button
               onClick={() =>
-                setFormData((prev) => ({ ...prev, type: "cash_in" }))
+                setFormData((prev) => ({
+                  ...prev,
+                  type: "cash_in",
+                  category: FLOW_IN_CATEGORIES[0],
+                }))
               }
               className={cn(
                 "flex-1 py-2 text-sm font-medium rounded-md transition-all duration-200",
@@ -302,7 +312,11 @@ export function QuickEntryDialog({
             </button>
             <button
               onClick={() =>
-                setFormData((prev) => ({ ...prev, type: "cash_out" }))
+                setFormData((prev) => ({
+                  ...prev,
+                  type: "cash_out",
+                  category: FLOW_OUT_CATEGORIES[0],
+                }))
               }
               className={cn(
                 "flex-1 py-2 text-sm font-medium rounded-md transition-all duration-200",
@@ -331,7 +345,10 @@ export function QuickEntryDialog({
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(formData.type === "cash_out" ? FLOW_OUT_CATEGORIES : FLOW_IN_CATEGORIES).map((cat) => (
+                  {(formData.type === "cash_out"
+                    ? FLOW_OUT_CATEGORIES
+                    : FLOW_IN_CATEGORIES
+                  ).map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>

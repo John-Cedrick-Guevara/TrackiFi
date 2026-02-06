@@ -25,7 +25,12 @@ export default function Investments() {
   const [selectedInv, setSelectedInv] = useState<Investment | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: investments = [], isLoading } = useQuery({
+  const {
+    data: investments = [],
+    isLoading,
+    isError,
+    error: queryError,
+  } = useQuery({
     queryKey: ["investments"],
     queryFn: async () => {
       const {
@@ -85,6 +90,32 @@ export default function Investments() {
         <p className="text-text-secondary animate-pulse">
           Loading your portfolio...
         </p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-7xl">
+        <Alert
+          variant="destructive"
+          className="bg-red-50 border-red-200 text-red-800"
+        >
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load investments:{" "}
+            {(queryError as Error)?.message || "Unknown error"}
+          </AlertDescription>
+        </Alert>
+        <Button
+          onClick={() =>
+            queryClient.invalidateQueries({ queryKey: ["investments"] })
+          }
+          className="mt-4"
+          variant="outline"
+        >
+          Try Again
+        </Button>
       </div>
     );
   }

@@ -79,15 +79,27 @@ export const createInvestment = async (
 export const getInvestments = async (env: Env, accessToken?: string) => {
   const supabase = getSupabase(env, accessToken);
 
+  // Explicitly verify user to ensure token is valid and get user.id for explicit filtering
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Unauthorized: Invalid token" };
+  }
+
   const { data, error } = await supabase
     .from("investments")
     .select("*")
+    .eq("user_uuid", user.id) // Explicitly filter by user_uuid even with RLS enabled
     .order("created_at", { ascending: false });
 
   if (error) return { error: error.message };
+  if (!data) return { data: [] };
 
   const investmentsWithGains = data.map((inv: Investment) => {
-    const absolute_gain = inv.current_value - inv.principal;
+    const absolute_gain = (inv.current_value || 0) - (inv.principal || 0);
     const percentage_change =
       inv.principal > 0 ? (absolute_gain / inv.principal) * 100 : 0;
     return {
@@ -107,10 +119,21 @@ export const getInvestmentById = async (
 ) => {
   const supabase = getSupabase(env, accessToken);
 
+  // Explicitly verify user
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Unauthorized: Invalid token" };
+  }
+
   const { data: investment, error: invError } = await supabase
     .from("investments")
     .select("*")
     .eq("uuid", id)
+    .eq("user_uuid", user.id) // Explicitly filter by user_uuid
     .single();
 
   if (invError) return { error: invError.message };
@@ -123,14 +146,16 @@ export const getInvestmentById = async (
 
   if (histError) return { error: histError.message };
 
-  const absolute_gain = investment.current_value - investment.principal;
+  const current_value = investment.current_value || 0;
+  const principal = investment.principal || 0;
+  const absolute_gain = current_value - principal;
   const percentage_change =
-    investment.principal > 0 ? (absolute_gain / investment.principal) * 100 : 0;
+    principal > 0 ? (absolute_gain / principal) * 100 : 0;
 
   return {
     data: {
       ...investment,
-      history,
+      history: history || [],
       absolute_gain,
       percentage_change,
     },
@@ -145,11 +170,22 @@ export const updateInvestmentValue = async (
 ) => {
   const supabase = getSupabase(env, accessToken);
 
+  // Explicitly verify user
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Unauthorized: Invalid token" };
+  }
+
   // 1. Update the investment current_value
   const { data: investment, error: invError } = await supabase
     .from("investments")
     .update({ current_value: data.value, updated_at: new Date().toISOString() })
     .eq("uuid", id)
+    .eq("user_uuid", user.id) // Explicitly filter
     .select()
     .single();
 
@@ -184,13 +220,14 @@ export const cashOutInvestment = async (
     error: authError,
   } = await supabase.auth.getUser();
 
-  if (authError || !user) return { error: "Unauthorized" };
+  if (authError || !user) return { error: "Unauthorized: Invalid token" };
 
-  // 1. Fetch current state
+  // 1. Fetch current state with user check
   const { data: investment, error: fetchError } = await supabase
     .from("investments")
     .select("*")
     .eq("uuid", id)
+    .eq("user_uuid", user.id) // Explicitly filter
     .single();
 
   if (fetchError) return { error: fetchError.message };
@@ -199,11 +236,13 @@ export const cashOutInvestment = async (
     return { error: "Withdrawal amount exceeds current value" };
   }
 
-  const newValue = investment.current_value - data.amount;
+  const newValue = (investment.current_value || 0) - data.amount;
   // Calculate how much principal this withdrawal represents (proportionally)
   const principalReduced =
-    (data.amount / investment.current_value) * investment.principal;
-  const newPrincipal = investment.principal - principalReduced;
+    investment.current_value > 0
+      ? (data.amount / investment.current_value) * (investment.principal || 0)
+      : 0;
+  const newPrincipal = (investment.principal || 0) - principalReduced;
 
   // 2. Update investment
   const { data: updatedInv, error: invUpdateError } = await supabase
@@ -215,6 +254,7 @@ export const cashOutInvestment = async (
       updated_at: new Date().toISOString(),
     })
     .eq("uuid", id)
+    .eq("user_uuid", user.id) // Explicitly filter
     .select()
     .single();
 
@@ -257,6 +297,22 @@ export const deleteInvestment = async (
   accessToken?: string,
 ) => {
   const supabase = getSupabase(env, accessToken);
-  const { error } = await supabase.from("investments").delete().eq("uuid", id);
+
+  // Explicitly verify user
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Unauthorized: Invalid token" };
+  }
+
+  const { error } = await supabase
+    .from("investments")
+    .delete()
+    .eq("uuid", id)
+    .eq("user_uuid", user.id); // Explicitly filter
+
   return { error: error?.message };
 };

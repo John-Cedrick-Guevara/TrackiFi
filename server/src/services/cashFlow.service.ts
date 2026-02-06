@@ -31,6 +31,37 @@ export const createQuickEntry = async (
     // status defaults to 'completed'
   };
 
+  // Defensive validation: Log warning if category type might be mismatched
+  // (In a full-scale app, we would validate against a categories table)
+  const incomeCategories = [
+    "Allowance",
+    "Freelance",
+    "Investments",
+    "Gifts",
+    "Other Income",
+  ];
+  const expenseCategories = [
+    "Food & Dining",
+    "Transportation",
+    "Shopping",
+    "Entertainment",
+    "Health",
+    "Utilities",
+  ];
+
+  if (dbPayload.type === "in" && expenseCategories.includes(data.category)) {
+    console.warn(
+      `Potential category mismatch: Income marked as ${data.category}`,
+    );
+  } else if (
+    dbPayload.type === "out" &&
+    incomeCategories.includes(data.category)
+  ) {
+    console.warn(
+      `Potential category mismatch: Expense marked as ${data.category}`,
+    );
+  }
+
   const { error } = await supabase.from("cash_flow").insert([dbPayload]);
   if (error) {
     console.error("Supabase insert error:", error);
