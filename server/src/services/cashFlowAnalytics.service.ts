@@ -180,13 +180,26 @@ export const getCashFlowByCategory = async (
   const categoryMap = new Map<string, number>();
   let total = 0;
 
+  // Known category lists for validation
+  const incomeCategories = ["Allowance", "Freelance", "Investments", "Gifts", "Other Income"];
+  const expenseCategories = ["Food & Dining", "Transportation", "Shopping", "Entertainment", "Health", "Utilities"];
+
   (transactions || []).forEach((transaction) => {
     const metadata = transaction.metadata as any;
     // Skip investment transactions in category breakdown
     if (metadata?.investment_uuid) return;
 
     const amount = parseFloat(transaction.amount.toString());
-    const category = metadata?.category_name || "Uncategorized";
+    let category = metadata?.category_name || "Uncategorized";
+
+    // Data validation: Check for category/type mismatch (corrupted data)
+    if (type === "in" && expenseCategories.includes(category)) {
+      console.warn(`[Data Integrity] Income transaction has expense category: ${category}`);
+      category = "Uncategorized (Invalid)";
+    } else if (type === "out" && incomeCategories.includes(category)) {
+      console.warn(`[Data Integrity] Expense transaction has income category: ${category}`);
+      category = "Uncategorized (Invalid)";
+    }
 
     categoryMap.set(category, (categoryMap.get(category) || 0) + amount);
     total += amount;

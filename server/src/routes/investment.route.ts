@@ -29,6 +29,7 @@ investmentRoute.post(
 
 // Get all investments
 investmentRoute.get("/", async (c) => {
+  console.log(`[Route] GET /api/investments - ${c.req.method}`);
   const token = c.req.header("Authorization")?.split(" ")[1];
 
   if (!token) {
@@ -43,6 +44,7 @@ investmentRoute.get("/", async (c) => {
     return c.json({ error }, 400);
   }
 
+  console.log(`[Route] Returning ${data?.length || 0} investments`);
   return c.json({ data });
 });
 

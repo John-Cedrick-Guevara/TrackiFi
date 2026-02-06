@@ -11,9 +11,8 @@ const API_BASE_URL = `${BASE_URL}/api/investments`;
 export const fetchInvestments = async (
   token: string,
 ): Promise<Investment[]> => {
-  // Ensure we have a trailing slash for the base path match if necessary,
-  // or just use the full string construction that's proven for analytics
-  const response = await fetch(`${API_BASE_URL}/`, {
+  // Use consistent URL format without trailing slash (same as createInvestment)
+  const response = await fetch(API_BASE_URL, {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",

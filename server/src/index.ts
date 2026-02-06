@@ -7,10 +7,17 @@ import { Env } from "./types/env";
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use("/*", cors());
+app.use("/*", cors({
+  origin: '*',
+  allowHeaders: ['Content-Type', 'Authorization'],
+  allowMethods: ['POST', 'GET', 'OPTIONS', 'DELETE', 'PUT'],
+  exposeHeaders: ['Content-Length'],
+  maxAge: 600,
+  credentials: false,
+}));
 
 app.onError((err, c) => {
-  console.error(`Error: ${err.message}`);
+  console.error(`[Server Error] ${err.message}`);
   return c.json(
     {
       error: err.message,
