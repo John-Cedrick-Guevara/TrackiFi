@@ -130,6 +130,8 @@ const Analytics = () => {
       },
     });
 
+    console.log(inflowCategoryData)
+
   return (
     <div className="min-h-screen bg-bg-main p-6 space-y-6">
       {/* Header */}

@@ -11,14 +11,22 @@ const API_BASE_URL = `${BASE_URL}/api/investments`;
 export const fetchInvestments = async (
   token: string,
 ): Promise<Investment[]> => {
-  const response = await fetch(API_BASE_URL, {
+  const url = new URL(API_BASE_URL);
+  // Ensure we have a trailing slash for the base path match if necessary,
+  // or just use the full string construction that's proven for analytics
+  const response = await fetch(`${API_BASE_URL}/`, {
     headers: {
       Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to fetch investments");
+    const errorText = await response.text();
+    console.error(
+      `[API] Fetch investments failed: ${response.status}`,
+      errorText,
+    );
+    throw new Error(`Failed to fetch investments (${response.status})`);
   }
   const result = await response.json();
   return result.data;

@@ -10,6 +10,15 @@ import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persist
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
 
+console.log(
+  `[Supabase] Initializing client with project: ${supabaseUrl?.split("//")[1]?.split(".")[0]}`,
+);
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error(
+    "[Supabase] Configuration missing! Check environment variables.",
+  );
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,

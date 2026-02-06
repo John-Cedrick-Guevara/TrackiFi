@@ -30,8 +30,19 @@ investmentRoute.post(
 // Get all investments
 investmentRoute.get("/", async (c) => {
   const token = c.req.header("Authorization")?.split(" ")[1];
+
+  if (!token) {
+    console.warn("[Auth] Missing token in getInvestments");
+    return c.json({ error: "Unauthorized: Missing token" }, 401);
+  }
+
   const { data, error } = await investmentService.getInvestments(c.env, token);
-  if (error) return c.json({ error }, 400);
+
+  if (error) {
+    console.error(`[Service] getInvestments error: ${error}`);
+    return c.json({ error }, 400);
+  }
+
   return c.json({ data });
 });
 

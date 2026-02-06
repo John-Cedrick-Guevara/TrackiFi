@@ -108,6 +108,8 @@ cashFlowAnalytics.get("/by-category", async (c) => {
   const endDate = c.req.query("endDate");
   const type = (c.req.query("type") as "in" | "out") || "out";
 
+  console.log(type)
+
   // Validate required parameters
   if (!startDate || !endDate) {
     return c.json(
