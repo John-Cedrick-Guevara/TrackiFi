@@ -11,7 +11,6 @@ const API_BASE_URL = `${BASE_URL}/api/investments`;
 export const fetchInvestments = async (
   token: string,
 ): Promise<Investment[]> => {
-  const url = new URL(API_BASE_URL);
   // Ensure we have a trailing slash for the base path match if necessary,
   // or just use the full string construction that's proven for analytics
   const response = await fetch(`${API_BASE_URL}/`, {
