@@ -54,9 +54,9 @@ const Dashbord = () => {
 
   return (
     <div className="bg-bg-surface">
-      <div className="space-y-6 px-6 py-6 shadow-b-xl">
+      <div className="flex flex-col md:flex-row gap-6 px-6 py-6 shadow-b-xl w-full max-w-7xl mx-auto">
         {/* Budget Summary */}
-        <div className="bg-bg-surface p-4 rounded-2xl flex items-start justify-between">
+        <div className="bg-bg-surface max-md:p-4 rounded-2xl flex items-start justify-between flex-1">
           <div>
             <p className="text-sm tracking-tight text-text-secondary">
               Track your balance today
@@ -78,7 +78,7 @@ const Dashbord = () => {
         </div>
 
         {/* quick cards */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 flex-1">
           <QuickCard
             color="primary"
             className="p-2 h-fit"

@@ -131,8 +131,8 @@ const TransactionHistory = () => {
   });
 
   return (
-    <section className="bg-bg-main p-6 pb-0 h-full">
-      <div className="flex justify-between items-center text-primary">
+    <section className="bg-bg-main p-6 pb-0 h-full w-full max-w-7xl mx-auto">
+      <div className="flex justify-between items-center text-primary ">
         <p className="text-2xl font-semibold tracking-tight">
           Transaction History
         </p>
