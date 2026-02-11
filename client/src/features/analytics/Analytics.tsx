@@ -11,7 +11,6 @@ import TimeViewToggle from "./components/TimeViewToggle";
 import { format, subDays } from "date-fns";
 import {
   TrendingUp,
-  PieChart,
   BarChart3,
   Wallet,
   Calendar,
