@@ -6,7 +6,7 @@ export interface CashFlowSummary {
 export interface Transaction {
   uuid: string;
   amount: number;
-  type: "in" | "out";
+  type: "in" | "out" | "transfer";
   metadata: {
     category_name?: string;
     tags?: string[];

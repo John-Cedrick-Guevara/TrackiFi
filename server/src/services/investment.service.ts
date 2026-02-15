@@ -12,11 +12,14 @@ export const createInvestment = async (
   env: Env,
   accessToken?: string,
 ) => {
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(
+    env,
+    accessToken,
+  );
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
     return { error: "Unauthorized: Invalid token" };
@@ -56,41 +59,58 @@ export const createInvestment = async (
 
   if (histError) console.error("History recording error:", histError);
 
-  // 3. Create a cash_out entry in cash_flow table
-  const { error: cfError } = await supabase.from("cash_flow").insert([
-    {
-      user_uuid: user.id,
-      amount: data.principal,
-      type: "out",
-      source_reason: `Investment: ${data.name}`,
-      metadata: {
-        investment_uuid: investment.uuid,
-        action: "invest",
-        category_name: "Investment",
-      },
-    },
-  ]);
+  // 3. Record transaction against the user's Allowance account
+  // Find the allowance account for this user
+  const { data: accounts } = await supabase
+    .from("accounts")
+    .select("id")
+    .eq("user_uuid", user.id)
+    .eq("type", "allowance")
+    .single();
 
-  if (cfError) console.error("Cash flow recording error:", cfError);
+  if (accounts) {
+    const { error: txError } = await supabase.from("transactions").insert([
+      {
+        user_uuid: user.id,
+        amount: data.principal,
+        transaction_type: "expense",
+        from_account_id: accounts.id,
+        category: "Investments",
+        description: `Investment: ${data.name}`,
+        metadata: {
+          investment_uuid: investment.uuid,
+          action: "invest",
+        },
+      },
+    ]);
+    if (txError) console.error("Transaction recording error:", txError);
+  } else {
+    console.error(
+      "Allowance account not found for user, skipping transaction recording",
+    );
+  }
 
   return { data: investment };
 };
 
 export const getInvestments = async (env: Env, accessToken?: string) => {
   console.log("[Service] getInvestments called with token:", !!accessToken);
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(
+    env,
+    accessToken,
+  );
 
   // Explicitly verify user to ensure token is valid and get user.id for explicit filtering
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError) {
     console.error("[Service] Auth error:", authError.message);
     return { error: `Unauthorized: ${authError.message}` };
   }
-  
+
   if (!user) {
     console.error("[Service] No user found from token");
     return { error: "Unauthorized: Invalid token" };
@@ -108,7 +128,7 @@ export const getInvestments = async (env: Env, accessToken?: string) => {
     console.error("[Service] Query error:", error.message);
     return { error: error.message };
   }
-  
+
   if (!data) {
     console.log("[Service] No data returned, returning empty array");
     return { data: [] };
@@ -135,13 +155,16 @@ export const getInvestmentById = async (
   env: Env,
   accessToken?: string,
 ) => {
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(
+    env,
+    accessToken,
+  );
 
   // Explicitly verify user
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
     return { error: "Unauthorized: Invalid token" };
@@ -186,13 +209,16 @@ export const updateInvestmentValue = async (
   env: Env,
   accessToken?: string,
 ) => {
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(
+    env,
+    accessToken,
+  );
 
   // Explicitly verify user
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
     return { error: "Unauthorized: Invalid token" };
@@ -232,11 +258,14 @@ export const cashOutInvestment = async (
   env: Env,
   accessToken?: string,
 ) => {
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(
+    env,
+    accessToken,
+  );
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user) return { error: "Unauthorized: Invalid token" };
 
@@ -288,23 +317,36 @@ export const cashOutInvestment = async (
     },
   ]);
 
-  // 4. Record as cash_in entry
-  const { error: cfError } = await supabase.from("cash_flow").insert([
-    {
-      user_uuid: user.id,
-      amount: data.amount,
-      type: "in",
-      source_reason: `Withdrawal from ${investment.name}`,
-      metadata: {
-        investment_uuid: id,
-        action: "cashout",
-        category_name: "Investment Return",
-        notes: data.notes,
-      },
-    },
-  ]);
+  // 4. Record as transaction against the user's Allowance account
+  const { data: accounts } = await supabase
+    .from("accounts")
+    .select("id")
+    .eq("user_uuid", user.id)
+    .eq("type", "allowance")
+    .single();
 
-  if (cfError) console.error("Cash flow recording error:", cfError);
+  if (accounts) {
+    const { error: txError } = await supabase.from("transactions").insert([
+      {
+        user_uuid: user.id,
+        amount: data.amount,
+        transaction_type: "income",
+        to_account_id: accounts.id,
+        category: "Other Income",
+        description: `Withdrawal from ${investment.name}`,
+        metadata: {
+          investment_uuid: id,
+          action: "cashout",
+          notes: data.notes,
+        },
+      },
+    ]);
+    if (txError) console.error("Transaction recording error:", txError);
+  } else {
+    console.error(
+      "Allowance account not found for user, skipping transaction recording",
+    );
+  }
 
   return { data: updatedInv };
 };
@@ -314,13 +356,16 @@ export const deleteInvestment = async (
   env: Env,
   accessToken?: string,
 ) => {
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(
+    env,
+    accessToken,
+  );
 
   // Explicitly verify user
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
     return { error: "Unauthorized: Invalid token" };

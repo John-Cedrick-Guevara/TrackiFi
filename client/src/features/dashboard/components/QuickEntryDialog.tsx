@@ -17,11 +17,13 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { API_BASE_URL } from "@/lib/config";
 import { Loader2, TrendingDown, TrendingUp, CheckCircle2 } from "lucide-react";
-import { useSupabase } from "@/providers";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
-import type { CashFlowSummary, Transaction } from "../types";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useAccounts,
+  useCreateIncome,
+  useCreateExpense,
+} from "@/features/savings/api";
 
 // --- Mock Data / Types for now ---
 const FLOW_OUT_CATEGORIES = [
@@ -56,8 +58,11 @@ export function QuickEntryDialog({
   onOpenChange,
   defaultType = "cash_out",
 }: QuickEntryDialogProps) {
-  const supabase = useSupabase();
   const queryClient = useQueryClient();
+  const { data: accounts, isLoading: accountsLoading } = useAccounts();
+  const createIncome = useCreateIncome();
+  const createExpense = useCreateExpense();
+
   // Consolidated Form Data
   const [formData, setFormData] = useState({
     amount: "",
@@ -67,11 +72,13 @@ export function QuickEntryDialog({
         ? FLOW_OUT_CATEGORIES[0]
         : FLOW_IN_CATEGORIES[0],
     selectedTags: [] as string[],
+    accountId: "",
   });
 
   // Sync internal type when defaultType changes or dialog opens
   useEffect(() => {
-    if (open) {
+    if (open && accounts) {
+      const defaultAccount = accounts.find((acc) => acc.type === "allowance");
       setFormData((prev) => ({
         ...prev,
         amount: "",
@@ -80,9 +87,10 @@ export function QuickEntryDialog({
           defaultType === "cash_out"
             ? FLOW_OUT_CATEGORIES[0]
             : FLOW_IN_CATEGORIES[0],
+        accountId: defaultAccount?.id || "",
       }));
     }
-  }, [open, defaultType]);
+  }, [open, defaultType, accounts]);
 
   // Handle Amount Change with Formatting
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,100 +126,47 @@ export function QuickEntryDialog({
     return parts.join(".");
   };
 
-  const { mutate: saveTransaction, isPending: isSaving } = useMutation({
-    mutationFn: async (newTransaction: typeof formData) => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
+  const isSaving = createIncome.isPending || createExpense.isPending;
 
-      if (!token) throw new Error("No token");
+  const saveTransaction = async () => {
+    if (!formData.accountId || !formData.amount) return;
 
-      const res = await fetch(`${API_BASE_URL}/api/cashflows/quick-entry`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newTransaction),
-      });
+    const amount = parseFloat(formData.amount.replace(/,/g, ""));
+    if (isNaN(amount) || amount <= 0) return;
 
-      if (!res.ok) throw new Error("Failed to save");
-      return res.json();
-    },
-    onMutate: async (newEntry) => {
-      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      await queryClient.cancelQueries({ queryKey: ["todayCashFlow"] });
-      await queryClient.cancelQueries({ queryKey: ["recentTransactions"] });
-
-      // Snapshot the previous value
-      const previousSummary = queryClient.getQueryData<CashFlowSummary>([
-        "todayCashFlow",
-      ]);
-      const previousTransactions = queryClient.getQueryData<Transaction[]>([
-        "recentTransactions",
-      ]);
-
-      // Optimistically update to the new value
-      if (previousSummary) {
-        const amount = parseFloat(newEntry.amount);
-        queryClient.setQueryData<CashFlowSummary>(["todayCashFlow"], {
-          ...previousSummary,
-          inflow:
-            newEntry.type === "cash_in"
-              ? previousSummary.inflow + amount
-              : previousSummary.inflow,
-          outflow:
-            newEntry.type === "cash_out"
-              ? previousSummary.outflow + amount
-              : previousSummary.outflow,
+    try {
+      if (formData.type === "cash_in") {
+        await createIncome.mutateAsync({
+          amount,
+          to_account_id: formData.accountId,
+          category: formData.category,
+          metadata: {
+            tags: formData.selectedTags,
+          },
+        });
+      } else {
+        await createExpense.mutateAsync({
+          amount,
+          from_account_id: formData.accountId,
+          category: formData.category,
+          metadata: {
+            tags: formData.selectedTags,
+          },
         });
       }
 
-      if (previousTransactions) {
-        const optimisticTransaction: Transaction = {
-          uuid: Math.random().toString(36).substring(7),
-          amount: parseFloat(newEntry.amount),
-          type: newEntry.type === "cash_in" ? "in" : "out",
-          metadata: {
-            category_name: newEntry.category,
-            tags: newEntry.selectedTags,
-          },
-          logged_at: new Date().toISOString(),
-        };
-        queryClient.setQueryData<Transaction[]>(
-          ["recentTransactions"],
-          [optimisticTransaction, ...previousTransactions],
-        );
-      }
-
-      return { previousSummary, previousTransactions };
-    },
-    onError: (_err, _newEntry, context) => {
-      // Rollback to the previous value if the mutation fails
-      if (context?.previousSummary) {
-        queryClient.setQueryData(["todayCashFlow"], context.previousSummary);
-      }
-      if (context?.previousTransactions) {
-        queryClient.setQueryData(
-          ["recentTransactions"],
-          context.previousTransactions,
-        );
-      }
-    },
-    onSettled: () => {
-      // Always refetch after error or success to ensure we have the correct server data
+      // Invalidate old queries for backward compatibility
       queryClient.invalidateQueries({ queryKey: ["todayCashFlow"] });
       queryClient.invalidateQueries({ queryKey: ["recentTransactions"] });
-    },
-    onSuccess: () => {
+
       onOpenChange(false);
-    },
-  });
+    } catch (error) {
+      console.error("Failed to save transaction:", error);
+    }
+  };
 
   const handleSave = () => {
-    if (!formData.amount) return;
-    saveTransaction(formData);
+    saveTransaction();
   };
 
   const toggleTag = (tag: string) => {
@@ -367,7 +322,37 @@ export function QuickEntryDialog({
             </div>
           </div>
 
-          {/* 4. Behavioral "Nudge" (The "Why") */}
+          {/* 4. Account Selection */}
+          {!accountsLoading && accounts && (
+            <div className="space-y-1">
+              <label className="text-xs text-text-secondary font-medium pl-1">
+                {formData.type === "cash_in" ? "Deposit To" : "Pay From"}
+              </label>
+              <Select
+                value={formData.accountId}
+                onValueChange={(val) =>
+                  setFormData((prev) => ({ ...prev, accountId: val }))
+                }
+              >
+                <SelectTrigger className="bg-bg-main border-none shadow-sm h-10">
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name} - ₱
+                      {account.balance.toLocaleString("en-PH", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* 5. Behavioral "Nudge" (The "Why") */}
           <div className="space-y-2">
             <label className="text-xs text-text-secondary font-medium pl-1">
               Tag (Optional)
@@ -391,7 +376,7 @@ export function QuickEntryDialog({
             </div>
           </div>
 
-          {/* 5. Goal Impact Indicator */}
+          {/* 6. Goal Impact Indicator */}
           <div className="min-h-6 flex items-center justify-center">
             {numAmount > 0 && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 text-xs font-medium">
@@ -401,7 +386,7 @@ export function QuickEntryDialog({
           </div>
         </div>
 
-        {/* 6. Footer Primary Action */}
+        {/* 7. Footer Primary Action */}
         <DialogFooter className="p-4 pt-0 sm:justify-center">
           <Button
             className={cn(

@@ -17,6 +17,7 @@ import {
   Gift,
   Banknote,
   HelpCircle,
+  ArrowLeftRight,
 } from "lucide-react";
 
 const getCategoryIcon = (category: string) => {
@@ -60,28 +61,45 @@ const TransactionItem = ({ transaction }: { transaction: Transaction }) => {
     "MMM dd, yyyy - hh:mm a",
   );
 
-  const isInternal = transaction.type === "in";
-  const statusColor = isInternal ? "text-gray-500" : "text-gray-500";
+  const isIncome = transaction.type === "in";
+  const isTransfer = transaction.type === "transfer";
+  const statusColor = isIncome
+    ? "text-emerald-500"
+    : isTransfer
+      ? "text-blue-500"
+      : "text-amber-500";
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex justify-between items-center bg-bg-surface p-3 rounded-xl border border-border/50 hover:border-border transition-colors">
       <div className="flex items-center gap-3">
         <div
           className={cn(
             "w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-xl border border-white/5",
-            isInternal ? "bg-gray-400/10" : "bg-gray-400/10",
+            isIncome
+              ? "bg-emerald-400/10"
+              : isTransfer
+                ? "bg-blue-400/10"
+                : "bg-amber-400/10",
           )}
         >
-          <div className={statusColor}>{getCategoryIcon(categoryName)}</div>
+          <div className={statusColor}>
+            {isTransfer ? (
+              <ArrowLeftRight className="w-5 h-5" />
+            ) : (
+              getCategoryIcon(categoryName)
+            )}
+          </div>
         </div>
         <div>
-          <p className="text-base font-medium text-primary">{categoryName}</p>
+          <p className="text-base font-medium text-text-primary">
+            {isTransfer ? "Transfer" : categoryName}
+          </p>
           <p className="text-xs text-text-secondary">{formattedDate}</p>
         </div>
       </div>
       <div>
         <p className={cn("text-base font-semibold", statusColor)}>
-          {isInternal ? "+" : "-"}
+          {isIncome ? "+" : isTransfer ? "" : "-"}
           {formattedAmount}
         </p>
       </div>

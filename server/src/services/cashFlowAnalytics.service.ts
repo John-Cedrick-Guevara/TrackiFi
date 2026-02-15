@@ -3,14 +3,18 @@ import { Env } from "../types/env";
 
 /**
  * Fetches today's cash flow summary (total inflow and outflow)
+ * Now pulls from the transactions table
  */
 export const getTodayCashFlow = async (env: Env, accessToken?: string) => {
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(
+    env,
+    accessToken,
+  );
 
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
     return { error: new Error("Unauthorized: Invalid token") };
@@ -29,27 +33,26 @@ export const getTodayCashFlow = async (env: Env, accessToken?: string) => {
     999,
   );
 
-  // Fetch today's transactions
+  // Fetch today's transactions from the new table
   const { data: transactions, error } = await supabase
-    .from("cash_flow")
-    .select("amount, type")
+    .from("transactions")
+    .select("amount, transaction_type")
     .eq("user_uuid", user.id)
-    .eq("status", "completed") // Only completed transactions
-    .gte("logged_at", startOfDay.toISOString())
-    .lte("logged_at", endOfDay.toISOString());
+    .gte("date", startOfDay.toISOString())
+    .lte("date", endOfDay.toISOString());
 
   if (error) {
     console.error("Supabase query error:", error);
     return { error };
   }
 
-  // Aggregate inflow and outflow
+  // Aggregate income and expense (transfers are excluded from net cash flow totals)
   const summary = (transactions || []).reduce(
     (acc, transaction) => {
       const amount = parseFloat(transaction.amount.toString());
-      if (transaction.type === "in") {
+      if (transaction.transaction_type === "income") {
         acc.inflow += amount;
-      } else if (transaction.type === "out") {
+      } else if (transaction.transaction_type === "expense") {
         acc.outflow += amount;
       }
       return acc;
@@ -62,26 +65,29 @@ export const getTodayCashFlow = async (env: Env, accessToken?: string) => {
 
 /**
  * Fetches recent transaction history (last 20 transactions)
+ * Now pulls from the transactions table
  */
 export const getRecentTransactions = async (env: Env, accessToken?: string) => {
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(
+    env,
+    accessToken,
+  );
 
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
     return { error: new Error("Unauthorized: Invalid token") };
   }
 
-  // Fetch recent transactions
+  // Fetch recent transactions from the new table
   const { data: transactions, error } = await supabase
-    .from("cash_flow")
-    .select("uuid, amount, type, metadata, logged_at")
+    .from("transactions")
+    .select("*")
     .eq("user_uuid", user.id)
-    .eq("status", "completed") // Only completed transactions
-    .order("logged_at", { ascending: false })
+    .order("date", { ascending: false })
     .limit(20);
 
   if (error) {
@@ -89,11 +95,30 @@ export const getRecentTransactions = async (env: Env, accessToken?: string) => {
     return { error };
   }
 
-  return { data: transactions || [] };
+  // Map back to the expected legacy format if necessary or keep new format
+  // For now, let's map it to keep frontend working with minimal changes
+  const mappedTransactions = (transactions || []).map((t) => ({
+    uuid: t.id,
+    amount: t.amount,
+    type:
+      t.transaction_type === "income"
+        ? "in"
+        : t.transaction_type === "expense"
+          ? "out"
+          : "transfer",
+    metadata: {
+      ...t.metadata,
+      category_name: t.category,
+    },
+    logged_at: t.date,
+  }));
+
+  return { data: mappedTransactions };
 };
 
 /**
  * Fetches cash flow time series data aggregated by time view
+ * Now pulls from the transactions table
  */
 export const getCashFlowTimeSeries = async (
   env: Env,
@@ -102,46 +127,60 @@ export const getCashFlowTimeSeries = async (
   endDate: string,
   accessToken?: string,
 ) => {
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(
+    env,
+    accessToken,
+  );
 
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
     return { error: new Error("Unauthorized: Invalid token") };
   }
 
-  // Fetch transactions in date range
+  // Fetch transactions in date range from the new table
   const { data: transactions, error } = await supabase
-    .from("cash_flow")
-    .select("amount, type, logged_at, metadata")
+    .from("transactions")
+    .select("amount, transaction_type, date, metadata")
     .eq("user_uuid", user.id)
-    .eq("status", "completed")
-    .gte("logged_at", startDate)
-    .lte("logged_at", endDate)
-    .order("logged_at", { ascending: true });
+    .gte("date", startDate)
+    .lte("date", endDate)
+    .order("date", { ascending: true });
 
   if (error) {
     console.error("Supabase query error:", error);
     return { error };
   }
 
-  // Filter out investment transactions from spending/income time series
-  const filteredTransactions = (transactions || []).filter((t) => {
-    const metadata = t.metadata as any;
-    return !metadata?.investment_uuid;
-  });
+  // Map and filter for the aggregator
+  const mappedTransactions = (transactions || [])
+    .map((t) => ({
+      amount: t.amount,
+      type:
+        t.transaction_type === "income"
+          ? "in"
+          : t.transaction_type === "expense"
+            ? "out"
+            : "transfer",
+      logged_at: t.date,
+      metadata: t.metadata,
+    }))
+    .filter(
+      (t) => t.type !== "transfer" && !(t.metadata as any)?.investment_uuid,
+    );
 
   // Aggregate data based on time view
-  const aggregated = aggregateByTimeView(filteredTransactions, timeView);
+  const aggregated = aggregateByTimeView(mappedTransactions, timeView);
 
   return { data: aggregated };
 };
 
 /**
  * Fetches cash flow breakdown by category
+ * Now pulls from the transactions table
  */
 export const getCashFlowByCategory = async (
   env: Env,
@@ -150,26 +189,31 @@ export const getCashFlowByCategory = async (
   accessToken?: string,
   type: "in" | "out" = "out",
 ) => {
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(
+    env,
+    accessToken,
+  );
 
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
     return { error: new Error("Unauthorized: Invalid token") };
   }
 
-  // Fetch transactions in date range
+  // Fetch transactions in date range from the new table
+  // Map 'in' to 'income' and 'out' to 'expense'
+  const dbType = type === "in" ? "income" : "expense";
+
   const { data: transactions, error } = await supabase
-    .from("cash_flow")
-    .select("amount, metadata")
+    .from("transactions")
+    .select("amount, category, metadata")
     .eq("user_uuid", user.id)
-    .eq("type", type)
-    .eq("status", "completed")
-    .gte("logged_at", startDate)
-    .lte("logged_at", endDate);
+    .eq("transaction_type", dbType)
+    .gte("date", startDate)
+    .lte("date", endDate);
 
   if (error) {
     console.error("Supabase query error:", error);
@@ -180,26 +224,13 @@ export const getCashFlowByCategory = async (
   const categoryMap = new Map<string, number>();
   let total = 0;
 
-  // Known category lists for validation
-  const incomeCategories = ["Allowance", "Freelance", "Investments", "Gifts", "Other Income"];
-  const expenseCategories = ["Food & Dining", "Transportation", "Shopping", "Entertainment", "Health", "Utilities"];
-
   (transactions || []).forEach((transaction) => {
     const metadata = transaction.metadata as any;
     // Skip investment transactions in category breakdown
     if (metadata?.investment_uuid) return;
 
     const amount = parseFloat(transaction.amount.toString());
-    let category = metadata?.category_name || "Uncategorized";
-
-    // Data validation: Check for category/type mismatch (corrupted data)
-    if (type === "in" && expenseCategories.includes(category)) {
-      console.warn(`[Data Integrity] Income transaction has expense category: ${category}`);
-      category = "Uncategorized (Invalid)";
-    } else if (type === "out" && incomeCategories.includes(category)) {
-      console.warn(`[Data Integrity] Expense transaction has income category: ${category}`);
-      category = "Uncategorized (Invalid)";
-    }
+    const category = transaction.category || "Uncategorized";
 
     categoryMap.set(category, (categoryMap.get(category) || 0) + amount);
     total += amount;

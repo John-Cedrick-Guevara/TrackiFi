@@ -45,5 +45,9 @@ export const getSupabase = (env: Env, accessToken?: string) => {
     console.warn("[Supabase] Client initialized without access token - operations will run as anon");
   }
 
-  return createClient(url, actualKey, options);
+  const client = createClient(url, actualKey, options);
+  
+  // CRITICAL: When using auth.getUser(), we must pass the JWT explicitly
+  // Global headers alone don't work for auth methods
+  return { client, accessToken };
 };

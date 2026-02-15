@@ -7,12 +7,12 @@ export const createQuickEntry = async (
   env: Env,
   accessToken?: string,
 ) => {
-  const supabase = getSupabase(env, accessToken);
+  const { client: supabase, accessToken: token } = getSupabase(env, accessToken);
 
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
     return new Error("Unauthorized: Invalid token");
