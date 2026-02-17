@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { API_BASE_URL as BASE_URL } from "@/lib/config";
+
 import { supabase } from "@/providers";
 import type {
   AccountWithBalance,
@@ -9,8 +11,7 @@ import type {
   TransactionFilters,
 } from "./types";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8787";
+const API_BASE_URL = BASE_URL;
 
 // Helper to make authenticated requests
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
