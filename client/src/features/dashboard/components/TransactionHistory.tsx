@@ -42,7 +42,7 @@ const getCategoryIcon = (category: string) => {
       return <TrendingUp className="w-5 h-5" />;
     case "Gifts":
       return <Gift className="w-5 h-5" />;
-    case "Other Income":
+    case "Transfer":
       return <Banknote className="w-5 h-5" />;
     default:
       return <HelpCircle className="w-5 h-5" />;

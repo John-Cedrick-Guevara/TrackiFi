@@ -39,6 +39,7 @@ const CashFlowPieChart: React.FC<CashFlowPieChartProps> = ({
     );
   }
 
+
   const chartData = [
     { name: "Cash In", value: data.inflow, color: COLORS.inflow },
     { name: "Cash Out", value: data.outflow, color: COLORS.outflow },

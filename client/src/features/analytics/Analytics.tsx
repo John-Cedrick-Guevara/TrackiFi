@@ -65,6 +65,7 @@ const Analytics = () => {
     },
   });
 
+
   // Fetch time series data for the Savings Chart (independent time view)
   const { data: savingsTimeSeriesData, isLoading: isSavingsLoading } = useQuery(
     {

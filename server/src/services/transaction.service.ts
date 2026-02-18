@@ -31,7 +31,7 @@ export const createIncome = async (
   // Verify account belongs to user
   const { data: account, error: accountError } = await supabase
     .from("accounts")
-    .select("id")
+    .select("id, type")
     .eq("id", data.to_account_id)
     .eq("user_uuid", user.id)
     .single();
@@ -43,7 +43,7 @@ export const createIncome = async (
   const payload = {
     user_uuid: user.id,
     amount: data.amount,
-    transaction_type: "income",
+    transaction_type: account.type === "savings" ? "income" : "allowance",
     to_account_id: data.to_account_id,
     from_account_id: null,
     date: data.date || new Date().toISOString(),

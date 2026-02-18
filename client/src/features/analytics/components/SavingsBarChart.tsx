@@ -54,6 +54,7 @@ const SavingsBarChart: React.FC<SavingsBarChartProps> = ({
   // Process data to calculate savings using the reusable hook
   const chartData = useSavingsAggregation(data);
 
+
   // Custom tooltips... (no changes needed in code logic)
 
   // Custom tooltip

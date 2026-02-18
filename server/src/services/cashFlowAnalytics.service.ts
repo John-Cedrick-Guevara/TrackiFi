@@ -50,7 +50,7 @@ export const getTodayCashFlow = async (env: Env, accessToken?: string) => {
   const summary = (transactions || []).reduce(
     (acc, transaction) => {
       const amount = parseFloat(transaction.amount.toString());
-      if (transaction.transaction_type === "income") {
+      if (transaction.transaction_type === "allowance") {
         acc.inflow += amount;
       } else if (transaction.transaction_type === "expense") {
         acc.outflow += amount;
@@ -101,14 +101,15 @@ export const getRecentTransactions = async (env: Env, accessToken?: string) => {
     uuid: t.id,
     amount: t.amount,
     type:
-      t.transaction_type === "income"
+      t.transaction_type === "allowance" || "income"
         ? "in"
         : t.transaction_type === "expense"
           ? "out"
           : "transfer",
     metadata: {
       ...t.metadata,
-      category_name: t.category,
+      category_name:
+        t.transaction_type === "transfer" ? "Transfer" : t.category,
     },
     logged_at: t.date,
   }));
@@ -160,11 +161,13 @@ export const getCashFlowTimeSeries = async (
     .map((t) => ({
       amount: t.amount,
       type:
-        t.transaction_type === "income"
+        t.transaction_type === "allowance"
           ? "in"
           : t.transaction_type === "expense"
             ? "out"
-            : "transfer",
+            : t.transaction_type === "income"
+              ? "savings"
+              : "transfer",
       logged_at: t.date,
       metadata: t.metadata,
     }))
@@ -257,7 +260,7 @@ function aggregateByTimeView(
 ) {
   const dataMap = new Map<
     string,
-    { period: string; inflow: number; outflow: number }
+    { period: string; inflow: number; outflow: number, savings: number }
   >();
 
   transactions.forEach((transaction) => {
@@ -283,14 +286,16 @@ function aggregateByTimeView(
     }
 
     if (!dataMap.has(periodKey)) {
-      dataMap.set(periodKey, { period: periodKey, inflow: 0, outflow: 0 });
+      dataMap.set(periodKey, { period: periodKey, inflow: 0, outflow: 0, savings: 0 });
     }
 
     const entry = dataMap.get(periodKey)!;
     if (transaction.type === "in") {
       entry.inflow += amount;
-    } else {
+    } else if (transaction.type === "out") {
       entry.outflow += amount;
+    } else if (transaction.type === "savings") {
+      entry.savings += amount;
     }
   });
 

@@ -13,9 +13,12 @@ export const useSavingsAggregation = (data: TimeSeriesData[] | undefined) => {
   const aggregatedData = useMemo(() => {
     if (!data) return [];
 
+    console.log(data)
+
     return data.map((item) => {
-      const inflow = Number(item.inflow || 0);
-      const outflow = Number(item.outflow || 0);
+      const inflow = Number(item.savings || 0);
+      // const outflow = Number(item.outflow || 0);
+      const outflow = Number(0);
       return {
         ...item,
         inflow,
