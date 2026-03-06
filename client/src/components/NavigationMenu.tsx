@@ -4,6 +4,7 @@ import {
   Home,
   BarChart3,
   TrendingUp,
+  Target,
   Settings,
   X,
   Wallet,
@@ -54,6 +55,12 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
       path: "/investments",
       icon: TrendingUp,
       description: "Portfolio tracking",
+    },
+    {
+      label: "Goals",
+      path: "/goals",
+      icon: Target,
+      description: "Financial planning",
     },
   ];
 

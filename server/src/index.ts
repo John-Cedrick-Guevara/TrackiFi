@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import cashflow from "./routes/cashFlow.route";
 import cashFlowAnalytics from "./routes/cashFlowAnalytics.route";
+import goalsRoute from "./routes/goals.route";
 import investmentRoute from "./routes/investment.route";
 import accountRoutes from "./routes/account.route";
 import transactionRoutes from "./routes/transaction.route";
@@ -69,6 +70,7 @@ app.get("/api/health", (c) => {
 // Mount routes - order matters for nested routes
 app.route("/api/cashflows/analytics", cashFlowAnalytics); // More specific first
 app.route("/api/cashflows", cashflow);
+app.route("/api/goals", goalsRoute);
 app.route("/api/investments", investmentRoute);
 app.route("/api/accounts", accountRoutes);
 app.route("/api/transactions", transactionRoutes);
