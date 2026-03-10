@@ -4,7 +4,7 @@ import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Goal } from "../types";
+import type { CreateGoalPayload } from "../types";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -29,30 +29,39 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useEffect } from "react";
 import { useAccounts } from "@/features/savings/api";
 import { Loader2, Wallet } from "lucide-react";
+import type { Goal } from "../types";
 
 // zod types/resolver can have version mismatches across packages; keep schema
 // but relax TypeScript checks by casting schema/resolver to `any` so runtime
 // behavior remains intact while avoiding compile-time type conflicts.
-const formSchema = z
-  .object({
-    title: z
-      .string()
-      .min(2, { message: "Title must be at least 2 characters." }),
-    target_amount: z.coerce
-      .number()
-      .min(1, { message: "Target amount must be greater than 0." }),
-    target_date: z.date(),
-  }) as any;
+const formSchema = z.object({
+  title: z.string().min(2, { message: "Title must be at least 2 characters." }),
+  target_amount: z.coerce
+    .number()
+    .min(1, { message: "Target amount must be greater than 0." }),
+  source_account_id: z
+    .string()
+    .min(1, { message: "Please select a source account." }),
+  target_date: z.date(),
+  description: z.string().optional(),
+}) as any;
 
 type FormData = any;
 
 interface GoalFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Omit<Goal, "id" | "created_at" | "updated_at">) => void;
+  onSubmit: (data: CreateGoalPayload) => void;
   initialData?: Goal | null;
 }
 
@@ -63,8 +72,6 @@ export const GoalForm = ({
   initialData,
 }: GoalFormProps) => {
   const { data: accounts, isLoading: accountsLoading } = useAccounts();
-  const savingsAccount = accounts?.find((acc) => acc.type === "savings");
-  const savingsBalance = savingsAccount?.balance ?? 0;
 
   const form = useForm<FormData>({
     // cast resolver to any to avoid type incompatibilities between
@@ -73,11 +80,16 @@ export const GoalForm = ({
     defaultValues: {
       title: initialData?.title || "",
       target_amount: initialData?.target_amount || 0,
-      target_date: initialData
+      source_account_id: initialData?.source_account_id || "",
+      target_date: initialData?.target_date
         ? new Date(initialData.target_date)
         : new Date(new Date().setMonth(new Date().getMonth() + 6)),
+      description: initialData?.description || "",
     },
   });
+
+  const selectedAccountId = form.watch("source_account_id");
+  const selectedAccount = accounts?.find((acc) => acc.id === selectedAccountId);
 
   // Reset the form only when the modal opens or initialData changes,
   // NOT on every render — doing it outside useEffect would clear the
@@ -87,9 +99,11 @@ export const GoalForm = ({
       form.reset({
         title: initialData?.title ?? "",
         target_amount: initialData?.target_amount ?? 0,
-        target_date: initialData
+        source_account_id: initialData?.source_account_id ?? "",
+        target_date: initialData?.target_date
           ? new Date(initialData.target_date)
           : new Date(new Date().setMonth(new Date().getMonth() + 6)),
+        description: initialData?.description ?? "",
       });
     }
   }, [isOpen, initialData]);
@@ -98,8 +112,9 @@ export const GoalForm = ({
     onSubmit({
       title: values.title,
       target_amount: values.target_amount,
-      current_amount: savingsBalance,
+      source_account_id: values.source_account_id,
       target_date: values.target_date.toISOString(),
+      description: values.description || undefined,
     });
     onClose();
   };
@@ -148,25 +163,78 @@ export const GoalForm = ({
               )}
             />
 
-            <div className="rounded-md border p-3 bg-muted/50">
-              <div className="flex items-center gap-2 text-sm">
-                <Wallet className="w-4 h-4 text-primary" />
-                <span className="font-medium">Savings Account Balance</span>
-              </div>
-              {accountsLoading ? (
-                <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Loading...
-                </div>
-              ) : (
-                <p className="text-xl font-bold text-primary mt-1">
-                  ₱{savingsBalance.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
-                </p>
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. Summer trip to Boracay"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-              <p className="text-xs text-muted-foreground mt-1">
-                This will be used as your starting amount.
-              </p>
-            </div>
+            />
+
+            <FormField
+              control={form.control}
+              name="source_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Source Account</FormLabel>
+                  {accountsLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Loading accounts...
+                    </div>
+                  ) : (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an account" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {accounts?.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name} ({account.type})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <FormDescription>
+                    The account where money for this goal is saved.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {selectedAccount && (
+              <div className="rounded-md border p-3 bg-muted/50">
+                <div className="flex items-center gap-2 text-sm">
+                  <Wallet className="w-4 h-4 text-primary" />
+                  <span className="font-medium">
+                    {selectedAccount.name} Balance
+                  </span>
+                </div>
+                <p className="text-xl font-bold text-primary mt-1">
+                  ₱
+                  {selectedAccount.balance.toLocaleString("en-PH", {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Contributions will be allocated from this account's
+                  transactions.
+                </p>
+              </div>
+            )}
 
             <FormField
               control={form.control}

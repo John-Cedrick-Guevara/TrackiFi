@@ -29,12 +29,14 @@ export const calculateForecast = (
 
   let monthsUntilTarget = Infinity;
   try {
-    const now = new Date();
-    const target = new Date(goal.target_date);
-    const diff =
-      (target.getFullYear() - now.getFullYear()) * 12 +
-      (target.getMonth() - now.getMonth());
-    monthsUntilTarget = Math.max(0, diff);
+    if (goal.target_date) {
+      const now = new Date();
+      const target = new Date(goal.target_date);
+      const diff =
+        (target.getFullYear() - now.getFullYear()) * 12 +
+        (target.getMonth() - now.getMonth());
+      monthsUntilTarget = Math.max(0, diff);
+    }
   } catch {
     monthsUntilTarget = Infinity;
   }

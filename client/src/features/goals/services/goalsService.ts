@@ -1,148 +1,152 @@
 import { API_BASE_URL } from "@/lib/config";
 import { supabase } from "@/providers";
-import type { Goal, SavingsBehavior } from "../types";
+import type {
+  Goal,
+  GoalContribution,
+  CreateGoalPayload,
+  CreateContributionPayload,
+  SavingsBehavior,
+  PredictionResult,
+} from "../types";
+
+// Helper to make authenticated requests
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  if (!token) {
+    throw new Error("No authentication token");
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Request failed");
+  }
+
+  return response.json();
+};
 
 export const goalsAPI = {
+  // ==================
+  // GOAL CRUD
+  // ==================
+
   getGoals: async (): Promise<Goal[]> => {
-    const { data, error } = await supabase
-      .from("goals")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-
-    return (data || []).map((g: any) => ({
-      id: g.uuid,
-      title: g.name || g.type,
-      target_amount: Number(g.target_amount),
-      current_amount: Number(g.metadata?.current_amount ?? 0),
-      target_date: g.end_date,
-      created_at: g.created_at,
-      updated_at: g.updated_at,
-    }));
+    const result = await fetchWithAuth(`${API_BASE_URL}/api/goals`);
+    return (result.data || []).map(mapGoalFromServer);
   },
 
   getGoalById: async (id: string): Promise<Goal | undefined> => {
-    const { data, error } = await supabase
-      .from("goals")
-      .select("*")
-      .eq("uuid", id)
-      .single();
-
-    if (error) throw error;
-    if (!data) return undefined;
-
-    return {
-      id: data.uuid,
-      title: data.name || data.type,
-      target_amount: Number(data.target_amount),
-      current_amount: Number(data.metadata?.current_amount ?? 0),
-      target_date: data.end_date,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
+    const result = await fetchWithAuth(`${API_BASE_URL}/api/goals/${id}`);
+    return result.data ? mapGoalFromServer(result.data) : undefined;
   },
 
-  generatePrediction: async (
-    goalId: string,
-    userId: string,
-    accessToken: string,
-  ): Promise<{
-    prediction: string;
-    monthsNeeded?: number;
-    estimatedCompletionDate?: string;
-  }> => {
-    const url = new URL(`${API_BASE_URL}/api/goals/generate-prediction`);
-    url.searchParams.append("goalId", goalId);
-    url.searchParams.append("userId", userId);
-
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+  createGoal: async (payload: CreateGoalPayload): Promise<Goal> => {
+    const result = await fetchWithAuth(`${API_BASE_URL}/api/goals`, {
+      method: "POST",
+      body: JSON.stringify({
+        name: payload.title,
+        target_amount: payload.target_amount,
+        source_account_id: payload.source_account_id,
+        end_date: payload.target_date || undefined,
+        description: payload.description || undefined,
+        type: "saving",
+      }),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to generate prediction");
-    }
-
-    return response.json();
-  },
-
-  createGoal: async (
-    goal: Omit<Goal, "id" | "created_at" | "updated_at">,
-  ): Promise<Goal> => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error("Unauthorized");
-
-    const { data, error } = await supabase
-      .from("goals")
-      .insert({
-        name: goal.title,
-        target_amount: goal.target_amount,
-        end_date: goal.target_date,
-        user_id: userData.user.id,
-        status: "active",
-        type: "saving", // default
-        start_date: new Date().toISOString().split("T")[0],
-        metadata: { current_amount: goal.current_amount ?? 0 },
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return {
-      id: data.uuid,
-      title: data.name || data.type,
-      target_amount: Number(data.target_amount),
-      current_amount: Number(data.metadata?.current_amount ?? 0),
-      target_date: data.end_date,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
+    return mapGoalFromServer(result.data);
   },
 
   updateGoal: async (id: string, updates: Partial<Goal>): Promise<Goal> => {
-    const { data, error } = await supabase
-      .from("goals")
-      .update({
-        ...(updates.title !== undefined && { name: updates.title }),
-        ...(updates.target_amount !== undefined && {
-          target_amount: updates.target_amount,
-        }),
-        ...(updates.target_date !== undefined && {
-          end_date: updates.target_date,
-        }),
-        updated_at: new Date().toISOString(),
-        ...(updates.current_amount !== undefined && {
-          metadata: { current_amount: updates.current_amount },
-        }),
-      })
-      .eq("uuid", id)
-      .select()
-      .single();
+    const serverPayload: Record<string, any> = {};
+    if (updates.title !== undefined) serverPayload.name = updates.title;
+    if (updates.target_amount !== undefined)
+      serverPayload.target_amount = updates.target_amount;
+    if (updates.target_date !== undefined)
+      serverPayload.end_date = updates.target_date;
+    if (updates.description !== undefined)
+      serverPayload.description = updates.description;
+    if (updates.source_account_id !== undefined)
+      serverPayload.source_account_id = updates.source_account_id;
 
-    if (error) throw error;
-
-    return {
-      id: data.uuid,
-      title: data.name || data.type,
-      target_amount: Number(data.target_amount),
-      current_amount: Number(data.metadata?.current_amount ?? 0),
-      target_date: data.end_date,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
+    const result = await fetchWithAuth(`${API_BASE_URL}/api/goals/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(serverPayload),
+    });
+    return mapGoalFromServer(result.data);
   },
 
   deleteGoal: async (id: string): Promise<boolean> => {
-    const { error } = await supabase.from("goals").delete().eq("uuid", id);
-
-    if (error) throw error;
+    await fetchWithAuth(`${API_BASE_URL}/api/goals/${id}`, {
+      method: "DELETE",
+    });
     return true;
   },
+
+  // ==================
+  // CONTRIBUTIONS
+  // ==================
+
+  getContributions: async (goalId: string): Promise<GoalContribution[]> => {
+    const result = await fetchWithAuth(
+      `${API_BASE_URL}/api/goals/${goalId}/contributions`,
+    );
+    return result.data || [];
+  },
+
+  addContribution: async (
+    goalId: string,
+    payload: CreateContributionPayload,
+  ): Promise<GoalContribution> => {
+    const result = await fetchWithAuth(
+      `${API_BASE_URL}/api/goals/${goalId}/contributions`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+    return result.data;
+  },
+
+  removeContribution: async (
+    goalId: string,
+    contributionId: string,
+  ): Promise<boolean> => {
+    await fetchWithAuth(
+      `${API_BASE_URL}/api/goals/${goalId}/contributions/${contributionId}`,
+      { method: "DELETE" },
+    );
+    return true;
+  },
+
+  // ==================
+  // PREDICTION
+  // ==================
+
+  generatePrediction: async (
+    goalId: string,
+    interval: "daily" | "weekly" | "monthly" = "monthly",
+  ): Promise<PredictionResult> => {
+    const url = new URL(`${API_BASE_URL}/api/goals/${goalId}/prediction`);
+    url.searchParams.set("interval", interval);
+
+    const result = await fetchWithAuth(url.toString());
+    return result;
+  },
+
+  // ==================
+  // BEHAVIOR (unchanged — used for fallback forecasting)
+  // ==================
 
   getBehavior: async (): Promise<SavingsBehavior> => {
     const {
@@ -197,3 +201,20 @@ export const goalsAPI = {
     };
   },
 };
+
+// Map server goal shape to client Goal type
+function mapGoalFromServer(g: any): Goal {
+  return {
+    id: g.uuid,
+    title: g.name || g.type,
+    description: g.description || undefined,
+    target_amount: Number(g.target_amount),
+    current_amount: Number(g.current_amount ?? 0),
+    source_account_id: g.source_account_id || "",
+    target_date: g.end_date || undefined,
+    start_date: g.start_date,
+    status: g.status || "active",
+    created_at: g.created_at,
+    updated_at: g.updated_at,
+  };
+}

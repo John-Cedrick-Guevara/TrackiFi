@@ -1,4 +1,4 @@
-import type { Goal, SavingsBehavior } from "../types";
+import type { Goal, SavingsBehavior, CreateGoalPayload } from "../types";
 import { GoalCard } from "./GoalCard";
 import {
   useGoals,
@@ -6,12 +6,11 @@ import {
   useDeleteGoal,
   useUpdateGoal,
 } from "../hooks/useGoals";
-import { useAccounts } from "@/features/savings/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { GoalForm } from "./GoalForm";
 import { GoalDetailPanel } from "./GoalDetailPanel";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 
 const DEFAULT_BEHAVIOR: SavingsBehavior = {
   average_monthly_savings: 0,
@@ -21,19 +20,8 @@ const DEFAULT_BEHAVIOR: SavingsBehavior = {
 export const GoalList = () => {
   const { data: goals, isLoading: goalsLoading } = useGoals();
   const { data: behavior, isLoading: behaviorLoading } = useSavingsBehavior();
-  const { data: accounts, isLoading: accountsLoading } = useAccounts();
   const deleteGoalMutation = useDeleteGoal();
   const updateGoalMutation = useUpdateGoal();
-
-  const savingsBalance = useMemo(() => {
-    const savingsAccount = accounts?.find((acc) => acc.type === "savings");
-    return savingsAccount?.balance ?? 0;
-  }, [accounts]);
-
-  // Override current_amount on each goal with the live savings balance
-  const goalsWithBalance = useMemo(() => {
-    return goals?.map((g) => ({ ...g, current_amount: savingsBalance })) ?? [];
-  }, [goals, savingsBalance]);
 
   const [selectedGoalForDelete, setSelectedGoalForDelete] =
     useState<Goal | null>(null);
@@ -49,17 +37,23 @@ export const GoalList = () => {
     setSelectedGoalForDelete(null);
   };
 
-  const handleUpdate = (goalUpdates: Partial<Goal>) => {
+  const handleUpdate = (goalPayload: CreateGoalPayload) => {
     if (selectedGoalForEdit) {
       updateGoalMutation.mutate({
         id: selectedGoalForEdit.id,
-        updates: goalUpdates,
+        updates: {
+          title: goalPayload.title,
+          target_amount: goalPayload.target_amount,
+          target_date: goalPayload.target_date,
+          description: goalPayload.description,
+          source_account_id: goalPayload.source_account_id,
+        },
       });
       setSelectedGoalForEdit(null);
     }
   };
 
-  if (goalsLoading || behaviorLoading || accountsLoading) {
+  if (goalsLoading || behaviorLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3].map((n) => (
@@ -69,7 +63,7 @@ export const GoalList = () => {
     );
   }
 
-  if (!goalsWithBalance || goalsWithBalance.length === 0) {
+  if (!goals || goals.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-12 mt-8 border-2 border-dashed border-border/50 rounded-xl bg-muted/10 text-center dark:bg-muted/5">
         <TargetIcon className="w-16 h-16 text-muted-foreground mb-4 opacity-50" />
@@ -87,7 +81,7 @@ export const GoalList = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {goalsWithBalance.map((goal) => (
+        {goals.map((goal) => (
           <GoalCard
             key={goal.id}
             goal={goal}

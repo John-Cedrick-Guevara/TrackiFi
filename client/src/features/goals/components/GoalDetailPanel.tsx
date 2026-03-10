@@ -1,12 +1,21 @@
-import type { Goal, SavingsBehavior, GoalForecast } from "../types";
+import type {
+  Goal,
+  SavingsBehavior,
+  GoalForecast,
+  GoalContribution,
+} from "../types";
 import { calculateForecast } from "../utils/forecasting";
 import { formatCurrency } from "../utils/format";
 import { ForecastInsight } from "./ForecastInsight";
-import { format, parseISO, subMonths } from "date-fns";
-import { useAuth } from "../../auth/hooks/useAuth";
-import { goalsAPI } from "../services/goalsService";
-import { useSupabase } from "@/providers";
-import { useState, useEffect } from "react";
+import { format, parseISO } from "date-fns";
+import {
+  useGoalContributions,
+  useGoalPrediction,
+  useAddContribution,
+  useRemoveContribution,
+} from "../hooks/useGoals";
+import { useTransactionHistory } from "@/features/savings/api";
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -15,7 +24,17 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
-import { Target, TrendingUp, Calendar, Wallet, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Target,
+  TrendingUp,
+  Calendar,
+  Wallet,
+  Loader2,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -38,43 +57,28 @@ export const GoalDetailPanel = ({
   isOpen,
   onClose,
 }: GoalDetailPanelProps) => {
-  const { user } = useAuth();
-  const supabase = useSupabase();
-  const [prediction, setPrediction] = useState<{
-    prediction: string;
-    monthsNeeded?: number;
-    estimatedCompletionDate?: string;
-  } | null>(null);
-  const [predictionLoading, setPredictionLoading] = useState(false);
-  const [predictionError, setPredictionError] = useState<string | null>(null);
+  const [showAddContribution, setShowAddContribution] = useState(false);
+  const [selectedTransactionId, setSelectedTransactionId] = useState("");
+  const [contributionAmount, setContributionAmount] = useState("");
 
-  useEffect(() => {
-    async function fetchPrediction() {
-      if (isOpen && goal && user) {
-        setPredictionLoading(true);
-        setPredictionError(null);
-        try {
-          const session = await supabase.auth.getSession();
-          const token = session.data.session?.access_token;
-          if (token) {
-            const data = await goalsAPI.generatePrediction(
-              goal.id,
-              user.id,
-              token,
-            );
-            setPrediction(data);
-          }
-        } catch (err: any) {
-          setPredictionError(err.message || "Failed to load prediction");
-        } finally {
-          setPredictionLoading(false);
-        }
-      } else if (!isOpen) {
-        setPrediction(null);
-      }
-    }
-    fetchPrediction();
-  }, [isOpen, goal, user, supabase]);
+  const { data: contributions, isLoading: contributionsLoading } =
+    useGoalContributions(goal?.id || "");
+
+  const {
+    data: prediction,
+    isLoading: predictionLoading,
+    error: predictionError,
+  } = useGoalPrediction(goal?.id || "");
+
+  // Fetch transactions for the source account to allow contribution selection
+  const { data: transactions } = useTransactionHistory(
+    goal?.source_account_id
+      ? { account_id: goal.source_account_id, limit: 50 }
+      : undefined,
+  );
+
+  const addContributionMutation = useAddContribution();
+  const removeContributionMutation = useRemoveContribution();
 
   if (!goal || !behavior) return null;
 
@@ -82,7 +86,7 @@ export const GoalDetailPanel = ({
   const backendForecast: GoalForecast | null = prediction
     ? {
         months_to_goal: prediction.monthsNeeded ?? 0,
-        is_on_track: true, // We could refine this logic if back-end returns more info
+        is_on_track: true,
         forecast_message: prediction.prediction,
       }
     : null;
@@ -95,19 +99,49 @@ export const GoalDetailPanel = ({
   const isCompleted = goal.current_amount >= goal.target_amount;
   const remaining = goal.target_amount - goal.current_amount;
 
-  // Generate mock chart data simulating saving history over past 6 months
-  const chartData = Array.from({ length: 6 }).map((_, i) => {
-    const monthTarget = subMonths(new Date(), 5 - i);
-    // Let's pretend user saved purely linearly (mock data logic)
-    const baseProgress =
-      goal.current_amount - behavior.average_monthly_savings * (5 - i);
-    return {
-      name: format(monthTarget, "MMM"),
-      amount: Math.max(0, baseProgress),
-    };
-  });
-  // Add the current month exact value
-  chartData[5].amount = goal.current_amount;
+  // Build chart data from real contribution time-series or prediction data
+  const chartData =
+    prediction?.timeSeries?.map((point) => ({
+      name: point.period,
+      amount: point.amount,
+    })) || [];
+
+  const handleAddContribution = () => {
+    if (!selectedTransactionId || !contributionAmount || !goal) return;
+
+    addContributionMutation.mutate(
+      {
+        goalId: goal.id,
+        payload: {
+          transaction_id: selectedTransactionId,
+          amount: Number(contributionAmount),
+        },
+      },
+      {
+        onSuccess: () => {
+          setShowAddContribution(false);
+          setSelectedTransactionId("");
+          setContributionAmount("");
+        },
+      },
+    );
+  };
+
+  const handleRemoveContribution = (contributionId: string) => {
+    if (!goal) return;
+    removeContributionMutation.mutate({
+      goalId: goal.id,
+      contributionId,
+    });
+  };
+
+  // Filter out transactions already contributed to this goal
+  const contributedTxIds = new Set(
+    (contributions || []).map((c: GoalContribution) => c.transaction_id),
+  );
+  const availableTransactions = (transactions || []).filter(
+    (tx: any) => !contributedTxIds.has(tx.id),
+  );
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -170,8 +204,7 @@ export const GoalDetailPanel = ({
               </div>
             ) : predictionError ? (
               <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-md border border-destructive/20 dark:bg-destructive/20">
-                Note: Advanced projection unavailable ({predictionError}). Using
-                basic fallback.
+                Note: Advanced projection unavailable. Using basic fallback.
               </div>
             ) : (
               prediction && (
@@ -190,10 +223,14 @@ export const GoalDetailPanel = ({
             <div className="border border-border/50 rounded-xl p-4 bg-card shadow-sm text-card-foreground">
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <Calendar className="w-4 h-4" />
-                <span className="text-sm font-medium text-foreground">Target Date</span>
+                <span className="text-sm font-medium text-foreground">
+                  Target Date
+                </span>
               </div>
               <p className="font-semibold text-foreground">
-                {format(parseISO(goal.target_date), "MMM d, yyyy")}
+                {goal.target_date
+                  ? format(parseISO(goal.target_date), "MMM d, yyyy")
+                  : "No target date"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {forecast.months_to_goal > 0
@@ -205,76 +242,209 @@ export const GoalDetailPanel = ({
             <div className="border border-border/50 rounded-xl p-4 bg-card shadow-sm text-card-foreground">
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <Wallet className="w-4 h-4" />
-                <span className="text-sm font-medium text-foreground">Av. Monthly Saving</span>
+                <span className="text-sm font-medium text-foreground">
+                  Contributions
+                </span>
               </div>
               <p className="font-semibold text-foreground">
-                {formatCurrency(behavior.average_monthly_savings)}
+                {contributions?.length ?? 0}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Based on recent behavior
+                Total allocations toward this goal
               </p>
             </div>
           </div>
 
-          {/* Trend Chart */}
-          <div className="border border-border/50 bg-card rounded-xl p-4 pt-5 mt-6 shadow-sm text-card-foreground">
-            <div className="flex items-center gap-2 mb-4 text-foreground">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-foreground">Savings History</h3>
+          {/* Contribution Time Series Chart */}
+          {chartData.length > 0 && (
+            <div className="border border-border/50 bg-card rounded-xl p-4 pt-5 mt-6 shadow-sm text-card-foreground">
+              <div className="flex items-center gap-2 mb-4 text-foreground">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-foreground">
+                  Contribution History
+                </h3>
+              </div>
+              <div className="h-[200px] w-full mt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={chartData}
+                    margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="colorAmount"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="hsl(var(--primary))"
+                          stopOpacity={0.8}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="hsl(var(--primary))"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="hsl(var(--muted-foreground)/0.2)"
+                    />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{
+                        fill: "hsl(var(--muted-foreground))",
+                        fontSize: 12,
+                      }}
+                      dy={10}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="amount"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorAmount)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            <div className="h-[200px] w-full mt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={chartData}
-                  margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+          )}
+
+          {/* Contributions List */}
+          <div className="border border-border/50 bg-card rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground">Contributions</h3>
+              {!isCompleted && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowAddContribution(!showAddContribution)}
                 >
-                  <defs>
-                    <linearGradient
-                      id="colorAmount"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor="hsl(var(--primary))"
-                        stopOpacity={0.8}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor="hsl(var(--primary))"
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="hsl(var(--muted-foreground)/0.2)"
-                  />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{
-                      fill: "hsl(var(--muted-foreground))",
-                      fontSize: 12,
-                    }}
-                    dy={10}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="amount"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorAmount)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add
+                </Button>
+              )}
             </div>
+
+            {/* Add Contribution Form */}
+            {showAddContribution && (
+              <div className="mb-4 p-3 border rounded-md bg-muted/30 space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-foreground">
+                    Select Transaction
+                  </label>
+                  <select
+                    value={selectedTransactionId}
+                    onChange={(e) => setSelectedTransactionId(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded-md bg-background text-foreground text-sm"
+                  >
+                    <option value="">Choose a transaction...</option>
+                    {availableTransactions.map((tx: any) => (
+                      <option key={tx.id} value={tx.id}>
+                        {formatCurrency(Number(tx.amount))} —{" "}
+                        {tx.description || tx.transaction_type} (
+                        {format(new Date(tx.date), "MMM d")})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">
+                    Amount to Allocate (₱)
+                  </label>
+                  <Input
+                    type="number"
+                    value={contributionAmount}
+                    onChange={(e) => setContributionAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="mt-1"
+                  />
+                </div>
+                {addContributionMutation.isError && (
+                  <p className="text-sm text-destructive bg-destructive/10 p-2 rounded-md border border-destructive/20">
+                    {addContributionMutation.error?.message}
+                  </p>
+                )}
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowAddContribution(false);
+                      setSelectedTransactionId("");
+                      setContributionAmount("");
+                      addContributionMutation.reset();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleAddContribution}
+                    disabled={
+                      !selectedTransactionId ||
+                      !contributionAmount ||
+                      Number(contributionAmount) <= 0 ||
+                      addContributionMutation.isPending
+                    }
+                  >
+                    {addContributionMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                    ) : null}
+                    Confirm
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Contribution List */}
+            {contributionsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading contributions...
+              </div>
+            ) : !contributions || contributions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No contributions yet. Add transactions to track your progress.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {contributions.map((c: GoalContribution) => (
+                  <div
+                    key={c.uuid}
+                    className="flex items-center justify-between p-2 rounded-md border bg-background"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-primary">
+                        {formatCurrency(Number(c.amount))}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(c.contributed_at), "MMM d, yyyy")}
+                      </p>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                      onClick={() => handleRemoveContribution(c.uuid)}
+                      disabled={removeContributionMutation.isPending}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </SheetContent>

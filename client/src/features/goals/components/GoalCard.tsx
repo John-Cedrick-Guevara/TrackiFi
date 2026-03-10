@@ -60,12 +60,14 @@ export const GoalCard = ({
                 : "At Risk"}
           </Badge>
         </div>
-        <div className="flex items-center text-sm text-muted-foreground mt-1 gap-1">
-          <Calendar className="w-4 h-4" />
-          <span>
-            Target: {format(parseISO(goal.target_date), "MMM d, yyyy")}
-          </span>
-        </div>
+        {goal.target_date && (
+          <div className="flex items-center text-sm text-muted-foreground mt-1 gap-1">
+            <Calendar className="w-4 h-4" />
+            <span>
+              Target: {format(parseISO(goal.target_date), "MMM d, yyyy")}
+            </span>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="flex-1">
         <div className="mt-4 mb-2 flex justify-between items-end">
