@@ -141,6 +141,8 @@ const Analytics = () => {
       },
     });
 
+    console.log(inflowCategoryData)
+
   return (
     <div className="min-h-screen">
       {/* Main Content Container */}

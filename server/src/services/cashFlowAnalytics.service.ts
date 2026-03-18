@@ -208,13 +208,13 @@ export const getCashFlowByCategory = async (
 
   // Fetch transactions in date range from the new table
   // Map 'in' to 'income' and 'out' to 'expense'
-  const dbType = type === "in" ? "income" : "expense";
+  const dbType = type === "in" ? ["income", "allowance"] : ["expense"];
 
   const { data: transactions, error } = await supabase
     .from("transactions")
     .select("amount, category, metadata")
     .eq("user_uuid", user.id)
-    .eq("transaction_type", dbType)
+    .in("transaction_type", dbType)
     .gte("date", startDate)
     .lte("date", endDate);
 
